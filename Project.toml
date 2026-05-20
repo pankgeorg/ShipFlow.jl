@@ -1,0 +1,21 @@
+name = "ShipFlow"
+uuid = "1f5a9b2e-c4d3-46e8-9f12-8d3e6a47c9b5"
+authors = ["Panagiotis Georgakopoulos <panagiotis.georgakopoulos@juliahub.com>"]
+version = "0.1.0-DEV"
+
+[deps]
+Propellers = "9d4e7a23-1f8c-46b1-aa3e-5e7d2b914c08"
+ShipShapes = "7c3b8d92-4e1f-4a6c-b18d-2f9e7c4d5a31"
+Turbulence = "3e2f4b81-a3c2-4e9f-9b5a-1d6f2a8c7e10"
+VoF = "5b1c8e3a-7f6d-4d2b-bd84-9a2f5d18e2a1"
+WaterLily = "ed894a53-35f9-47f1-b17f-85db9237eebd"
+
+[compat]
+WaterLily = "1.7"
+julia = "1.10"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
