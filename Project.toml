@@ -10,9 +10,16 @@ Turbulence = "3e2f4b81-a3c2-4e9f-9b5a-1d6f2a8c7e10"
 VoF = "5b1c8e3a-7f6d-4d2b-bd84-9a2f5d18e2a1"
 WaterLily = "ed894a53-35f9-47f1-b17f-85db9237eebd"
 
+[sources]
+WaterLily   = {path = "../WaterLily"}
+ShipShapes  = {path = "../ShipShapes.jl"}
+Propellers  = {path = "../Propellers.jl"}
+Turbulence  = {path = "../Turbulence.jl"}
+VoF         = {path = "../VoF.jl"}
+
 [compat]
 WaterLily = "1.7"
-julia = "1.10"
+julia = "1.11"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

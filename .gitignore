@@ -1,0 +1,11 @@
+.vscode/
+.DS_Store
+Manifest.toml
+LocalPreferences.toml
+/docs/build/
+
+# OpenFOAM run artefacts — generated on demand by the harness.
+runs/*/log.*
+runs/*/[0-9]*
+runs/*/processor*
+runs/*/postProcessing

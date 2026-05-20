@@ -1,5 +1,8 @@
 module ShipFlow
 
-# Scaffolding only — see MASTER_PLAN.md and HARNESS.md.
+include("Harness.jl")
+using .Harness
+
+export Harness, run_foam_tutorial, read_volVectorField, read_volScalarField
 
 end # module
