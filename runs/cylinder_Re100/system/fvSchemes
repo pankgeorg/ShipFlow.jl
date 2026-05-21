@@ -16,30 +16,30 @@ FoamFile
 
 ddtSchemes
 {
-    // Transient (Re=100 cylinder vortex shedding)
+    // Transient toward steady (Re=20).
     default         Euler;
 }
 
 gradSchemes
 {
+    // Drop the cellLimited limiter — at Re=100 it adds enough numerical
+    // diffusion to damp the Karman shedding instability completely.
     default         Gauss linear;
-
-    limited         cellLimited Gauss linear 1;
-    grad(U)         $limited;
-    grad(k)         $limited;
-    grad(omega)     $limited;
-    grad(epsilon)   $limited;
+    grad(U)         Gauss linear;
+    grad(k)         Gauss linear;
+    grad(omega)     Gauss linear;
+    grad(epsilon)   Gauss linear;
 }
 
 divSchemes
 {
     default         none;
 
-    // For steady-state, use the bounded form of advection schemes
 #ifeq ($!ddtSchemes/default steadyState)
     div(phi,U)      bounded Gauss linearUpwind limited;
     turbulence      bounded Gauss limitedLinear 1;
 #else
+    // Steady-laminar flow at Re=20 — linearUpwind is sufficient.
     div(phi,U)      Gauss linearUpwind limited;
     turbulence      Gauss limitedLinear 1;
 #endif

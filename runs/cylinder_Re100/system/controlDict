@@ -14,24 +14,23 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Transient cylinder Re=100 — modified from upstream tutorial for
-// WaterLily-vs-OpenFOAM Strouhal / Cd validation.
-//
-// D = 0.001 m, U = 1.5 m/s, nu = 1.5e-5 m^2/s  ->  Re = 100
-// Expected: St ~ 0.165, Cd ~ 1.4   (e.g. Williamson 1996)
-// Shedding period T_s = D/(U*St) ~ 4.0e-3 s.
+// Re=20 cylinder — WaterLily-vs-OpenFOAM Cd validation (steady wake).
+// D = 0.001 m, U = 0.3 m/s, nu = 1.5e-5 m^2/s  ->  Re = U*D/nu = 20
+// Expected steady Cd ~ 2.04 (Tritton 1959; Sucker & Brauer 1975).
+// No vortex shedding below Re~47, so this is a steady-state comparison.
 
 solver          incompressibleFluid;
 
 startFrom       startTime;
 startTime       0;
 stopAt          endTime;
-endTime         0.5;
+// At Re=20 transients die in ~30 D/U = 0.1 s.
+endTime         0.2;
 
-deltaT          1e-5;
+deltaT          5e-5;
 adjustTimeStep  yes;
 maxCo           0.5;
-maxDeltaT       5e-5;
+maxDeltaT       2e-4;
 
 writeControl    runTime;
 writeInterval   0.005;
@@ -61,7 +60,7 @@ functions
         dragDir         (1 0 0);
         CofR            (0 0 0);
         pitchAxis       (0 0 1);
-        magUInf         1.5;
+        magUInf         0.3;
         lRef            0.001;
         Aref            1e-6;
         log             true;
