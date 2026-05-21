@@ -19,7 +19,9 @@ Uinlet          1.5;
 
 dimensions      [0 1 -1 0 0 0 0];
 
-internalField   uniform (0 0 0);
+// Small y-bias breaks the perfect symmetry of the mirrored mesh and
+// triggers vortex shedding in O(20 D/U) instead of O(>200 D/U).
+internalField   uniform (1.5 0.15 0);
 
 boundaryField
 {

@@ -19,7 +19,7 @@ diameter       0.001;
 
 // Global mesh scaling factor:
 // 3 = 5388 cells (after mirroring); 4 = 9536 cells; 5 = 14860 cells
-scalingFactor  3;
+scalingFactor  5;
 
 // Block vertex parameters
 cylRadius      #calc "$diameter / 2.0";

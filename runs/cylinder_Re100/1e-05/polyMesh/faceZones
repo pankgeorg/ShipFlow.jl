@@ -8,20 +8,13 @@
 FoamFile
 {
     format      ascii;
-    class       dictionary;
-    location    "system";
-    object      mirrorMeshDict;
+    class       regIOobject;
+    location    "1e-05/polyMesh";
+    object      faceZones;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-planeType       pointAndNormal;
-
-pointAndNormalDict
-{
-    point           (0 0 0);
-    normal          (0 1 0);
-}
-
-planeTolerance  1e-6;
+0
+()
 
 // ************************************************************************* //

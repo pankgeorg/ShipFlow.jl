@@ -9,7 +9,7 @@ FoamFile
 {
     format      ascii;
     class       polyBoundaryMesh;
-    location    "constant/polyMesh";
+    location    "1e-05/polyMesh";
     object      boundary;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -19,28 +19,28 @@ FoamFile
     inlet
     {
         type            patch;
-        nFaces          76;
-        startFace       14664;
+        nFaces          152;
+        startFace       29523;
     }
     outlet
     {
         type            patch;
-        nFaces          55;
-        startFace       14740;
+        nFaces          110;
+        startFace       29675;
     }
     cylinder
     {
         type            wall;
         inGroups        List<word> 1(wall);
-        nFaces          66;
-        startFace       14795;
+        nFaces          132;
+        startFace       29785;
     }
     frontAndBack
     {
         type            empty;
         inGroups        List<word> 1(empty);
-        nFaces          15055;
-        startFace       14861;
+        nFaces          29720;
+        startFace       29917;
     }
 )
 

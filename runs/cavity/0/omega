@@ -2,26 +2,39 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Version:  11
+    \\  /    A nd           | Version:  dev
      \\/     M anipulation  |
 \*---------------------------------------------------------------------------*/
 FoamFile
 {
     format      ascii;
-    class       dictionary;
-    location    "system";
-    object      mirrorMeshDict;
+    class       volScalarField;
+    location    "0";
+    object      omega;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-planeType       pointAndNormal;
+dimensions      [0 0 -1 0 0 0 0];
 
-pointAndNormalDict
+internalField   uniform 22.4;
+
+boundaryField
 {
-    point           (0 0 0);
-    normal          (0 1 0);
+    movingWall
+    {
+        type            omegaWallFunction;
+        value           uniform 22.4;
+    }
+    fixedWalls
+    {
+        type            omegaWallFunction;
+        value           uniform 22.4;
+    }
+    frontAndBack
+    {
+        type            empty;
+    }
 }
 
-planeTolerance  1e-6;
 
 // ************************************************************************* //
