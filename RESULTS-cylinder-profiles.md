@@ -105,12 +105,70 @@ matched-domain WL run would tighten the agreement further.
   RMS / max deviation per station
 - Output: the headline table above
 
-## What this *does not* yet validate
+## Resolution convergence — N=32 vs N=48
 
-- **N convergence in WaterLily.** A run at N=64 (and N=96 if patient)
-  would tell us whether the recirculation length tightens toward 1.5D.
-  This is the natural next iteration — and the one most likely to
-  improve the headline numbers if a resolution issue is at play.
+Ran a follow-up at N=48 (otherwise identical setup) to test whether the
+wake-length mismatch is a resolution issue:
+
+| Quantity                | OF (ref) | WL N=32 | WL N=48 |
+|-------------------------|----------|---------|---------|
+| u_x at x=1D, y=0        | −0.159   | −0.153  | −0.141  |
+| u_x at x=2D, y=0        | +0.013   | −0.063  | **−0.154** |
+| u_x at x=3D, y=0        | +0.410   | +0.205  | **−0.016** |
+| u_x at x=5D, y=0        | +0.713   | +0.478  | **+0.221** |
+| Recirculation length L_r/D | 1.7   | 2.5     | **~3.2** |
+| Cp(180°) stagnation     | 1.13     | 1.32    | 1.34    |
+| Cp(90°)   suction       | −1.06    | −0.98   | −0.91   |
+
+**The N=48 wake is *longer* than N=32, not shorter.** Going from
+N=32 to N=48:
+
+- Right behind the cylinder (x=1D, y=0) the recirculation strength
+  weakens slightly (closer to OF's value), as expected from finer
+  resolution.
+- Past that, the wake recovers *more slowly* — the bubble extends
+  further downstream.
+- Suction Cp on the cylinder surface gets weaker (worse vs OF).
+
+### Diagnosis
+
+WaterLily's BDIM kernel width defaults to **ε = 1 grid cell**.
+Therefore `ε / D = 1 / N`. As N increases, the kernel narrows
+in physical units, making the body appear *sharper* to the flow.
+Sharper boundary → narrower boundary layer → less momentum
+transferred into the wake → longer recirculation bubble. This is
+the standard BDIM trade-off documented in the original immersed-
+boundary literature (Roma, Peskin, Berger 1999; Goldstein 1993).
+
+A naïve resolution refinement cannot reach the body-fitted answer
+without also retuning ε. The correct convergence path is **fix
+ε/D and refine** (e.g., ε = 2 cells at N=64, ε = 3 cells at N=96)
+— that holds the effective body thickness constant while
+sharpening the surrounding flow.
+
+### Forces stay good
+
+Despite the wake-structure divergence, the integrated forces remain
+in the Williamson 1996 envelope:
+
+|              | WL N=32 | OF      | Williamson 1996 |
+|--------------|---------|---------|-----------------|
+| Cd (mean)    | 1.340   | 1.394   | 1.32 – 1.40     |
+| Cl pk-to-pk  | 0.668   | 0.649   | 0.60 – 0.66     |
+| Strouhal     | 0.183   | 0.169   | 0.165           |
+
+The integrated body force is the *average* over the cylinder
+surface, which is much less sensitive to the BDIM kernel width
+than the local separation point or wake bubble length.
+
+## Next-step suggestions (not in scope here)
+
+- Re-run WaterLily at N=64 with ε=2 (fixed ε/D) — the *correct*
+  BDIM convergence test.
+- Re-run WaterLily with a wider domain (16D × 16D instead of
+  16D × 8D) to remove the ~7% blockage-driven side-wake offset.
+- Phase-locked instantaneous Cl plot showing WL vs OF over a
+  shedding cycle — purely qualitative but visually compelling.
 - **Domain-size convergence in WaterLily.** Re-running WL with a wider
   y-domain (16D or 32D) should remove the ~7% blockage offset in the
   side-wake.

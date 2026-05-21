@@ -10,15 +10,18 @@
 using WaterLily
 using Printf
 
-const OUTDIR = abspath(joinpath(@__DIR__, "..", "runs", "cylinder_waterlily_profiles"))
-mkpath(OUTDIR)
+const N_RESOL  = parse(Int,    get(ENV, "WL_N",        "32"))
+const T_END    = parse(Float64, get(ENV, "WL_TEND",    "200.0"))
+const T_AVG_ST = parse(Float64, get(ENV, "WL_TAVG",    "60.0"))
+const N_DIAM_X = parse(Int,    get(ENV, "WL_NDIAM_X", "16"))
+const N_DIAM_Y = parse(Int,    get(ENV, "WL_NDIAM_Y", "8"))
+const OUT_SUFFIX = get(ENV, "WL_SUFFIX", "")
 
-const N_RESOL = 32      # cells per D
-const RE      = 100
-const N_DIAM_X = 16
-const N_DIAM_Y = 8
-const T_AVG_START = 60.0      # start averaging after wake has developed
-const T_END       = 200.0     # ~30 shedding cycles in the averaging window
+const RE = 100
+const OUTDIR = abspath(joinpath(@__DIR__, "..", "runs",
+                                "cylinder_waterlily_profiles" * OUT_SUFFIX))
+mkpath(OUTDIR)
+const T_AVG_START = T_AVG_ST
 
 # Cylinder placement (matches scripts/cylinder_Re100_waterlily.jl)
 const CX = 4 * N_RESOL                # x_index of cylinder centre
