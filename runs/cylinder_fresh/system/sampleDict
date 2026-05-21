@@ -1,0 +1,73 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM 11
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      sampleDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Sample U on vertical lines at x = 2D, 5D, 10D downstream of the
+// cylinder centre (origin in mesh coords). Domain is in metres after
+// scale=0.001 (D = 0.001 m).
+//
+// Run as a postProcess step:
+//   foamPostProcess -func sample -fields '(UMean pMean)'
+
+type sets;
+libs ("libsampling.so");
+
+interpolationScheme cellPoint;
+setFormat raw;
+
+fields ( UMean pMean );
+
+sets
+(
+    line_x2D
+    {
+        type    uniform;
+        axis    y;
+        start   (0.002 -0.003 0);
+        end     (0.002  0.003 0);
+        nPoints 121;
+    }
+    line_x5D
+    {
+        type    uniform;
+        axis    y;
+        start   (0.005 -0.003 0);
+        end     (0.005  0.003 0);
+        nPoints 121;
+    }
+    line_x10D
+    {
+        type    uniform;
+        axis    y;
+        start   (0.010 -0.003 0);
+        end     (0.010  0.003 0);
+        nPoints 121;
+    }
+    centerline
+    {
+        type    uniform;
+        axis    x;
+        start   (0.0006 0 0);
+        end     (0.014  0 0);
+        nPoints 268;
+    }
+    surface_ring
+    {
+        // Cp ring just outside the cylinder surface (1.05 R)
+        type    uniform;
+        axis    xyz;
+        start   (0.000525 0 0);
+        end     (0.000525 0 0);
+        nPoints 1;
+    }
+);
+
+// ************************************************************************* //
