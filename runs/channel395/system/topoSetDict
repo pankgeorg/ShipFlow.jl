@@ -1,0 +1,40 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM 11
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      topoSetDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Create an explicit `all` cellZone (the v12+ default; v11 needs it manual)
+// so that meanVelocityForce can apply to the whole domain.
+
+actions
+(
+    {
+        name    all;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        sourceInfo
+        {
+            box (-1e6 -1e6 -1e6) (1e6 1e6 1e6);
+        }
+    }
+    {
+        name    all;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        sourceInfo
+        {
+            set     all;
+        }
+    }
+);
+
+// ************************************************************************* //

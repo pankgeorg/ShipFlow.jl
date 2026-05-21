@@ -15,6 +15,7 @@ const T_END    = parse(Float64, get(ENV, "WL_TEND",    "200.0"))
 const T_AVG_ST = parse(Float64, get(ENV, "WL_TAVG",    "60.0"))
 const N_DIAM_X = parse(Int,    get(ENV, "WL_NDIAM_X", "16"))
 const N_DIAM_Y = parse(Int,    get(ENV, "WL_NDIAM_Y", "8"))
+const EPS      = parse(Float64, get(ENV, "WL_EPS",     "1.0"))
 const OUT_SUFFIX = get(ENV, "WL_SUFFIX", "")
 
 const RE = 100
@@ -35,6 +36,7 @@ function cylinder_sim()
     Simulation((nx, ny), (U, 0), N_RESOL;
         ν = U * N_RESOL / RE,
         body = AutoBody(sdf),
+        ϵ = EPS,
         T = Float32,
     )
 end
