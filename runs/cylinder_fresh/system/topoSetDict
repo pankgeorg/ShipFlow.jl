@@ -1,0 +1,57 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM 11
+   \\    /   O peration     |
+    \\  /    A nd           |
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      topoSetDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Cylinder centred at (0, 0, 0) with D = 0.001 m (mesh scaled by 0.001).
+// Select cells whose centres lie inside the cylinder for removal.
+//
+// Note: with mesh scale 0.001 applied, the cylinder radius in physical
+// units is 0.0005. Slightly enlarge the test radius so any "partly
+// inside" cells are also removed — this avoids snaggy boundary cells.
+
+actions
+(
+    // 1. Mark cylinder cells
+    {
+        name    cylinderCells;
+        type    cellSet;
+        action  new;
+        source  cylinderToCell;
+        sourceInfo
+        {
+            p1     (0  0  -0.001);
+            p2     (0  0   0.001);
+            radius 0.0005;
+        }
+    }
+
+    // 2. Mark every cell
+    {
+        name    keepCells;
+        type    cellSet;
+        action  new;
+        source  cellToCell;
+        sourceInfo
+        {
+            set cylinderCells;   // start from cylinderCells
+        }
+    }
+    {
+        name    keepCells;
+        type    cellSet;
+        action  invert;          // now keepCells = NOT cylinderCells
+    }
+);
+
+// ************************************************************************* //

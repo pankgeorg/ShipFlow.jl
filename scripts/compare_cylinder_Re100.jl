@@ -14,7 +14,7 @@
 using Printf
 using Statistics: mean
 
-const OF_FORCES = abspath(joinpath(@__DIR__, "..", "runs", "cylinder_Re100",
+const OF_FORCES = abspath(joinpath(@__DIR__, "..", "runs", "cylinder_fresh",
                                     "postProcessing", "forceCoeffs1", "0",
                                     "forceCoeffs.dat"))
 const WL_CSV    = abspath(joinpath(@__DIR__, "..", "runs", "cylinder_waterlily",

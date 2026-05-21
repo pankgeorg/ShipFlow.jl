@@ -1,0 +1,58 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM 11
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Re = 100: D = 0.001 m, U = 1.5 m/s, nu = 1.5e-5 m^2/s
+Uinlet          1.5;
+
+dimensions      [0 1 -1 0 0 0 0];
+
+// Asymmetric IC (0.05 = 3% of Uinlet) to seed the Karman shedding mode.
+// Symmetric mesh would need this; with our asymmetric Cartesian + carved
+// cylinder it still helps shedding develop faster.
+internalField   uniform (1.5 0.05 0);
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform ($Uinlet 0 0);
+    }
+
+    outlet
+    {
+        type            zeroGradient;
+    }
+
+    top
+    {
+        // Far-field slip — wall normal is y, so let tangential flow pass.
+        type            slip;
+    }
+
+    bottom
+    {
+        type            slip;
+    }
+
+    cylinder
+    {
+        type            noSlip;
+    }
+
+    frontAndBack
+    {
+        type            empty;
+    }
+}
+
+// ************************************************************************* //
