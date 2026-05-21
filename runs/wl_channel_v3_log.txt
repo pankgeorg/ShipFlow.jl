@@ -1,0 +1,61 @@
+[ Info: Building WaterLily channel sim…
+[ Info: Stepping; SGS via Smagorinsky; fixed body force g_x=0.00021882987290360986
+[ Info: t=   1.8  ⟨u⟩=1.0038  Δt=5.847e-01  νₜ_max=6.250e-03
+[ Info: t=   3.6  ⟨u⟩=1.0089  Δt=5.732e-01  νₜ_max=8.095e-03
+[ Info: t=   5.4  ⟨u⟩=1.0138  Δt=5.717e-01  νₜ_max=7.943e-03
+[ Info: t=   7.2  ⟨u⟩=1.0187  Δt=5.810e-01  νₜ_max=1.075e-02
+[ Info: t=   9.0  ⟨u⟩=1.0237  Δt=5.969e-01  νₜ_max=9.942e-03
+[ Info: t=  10.9  ⟨u⟩=1.0287  Δt=6.073e-01  νₜ_max=1.191e-02
+[ Info: t=  12.8  ⟨u⟩=1.0336  Δt=6.081e-01  νₜ_max=1.593e-02
+[ Info: t=  14.7  ⟨u⟩=1.0380  Δt=5.982e-01  νₜ_max=1.728e-02
+[ Info: t=  16.5  ⟨u⟩=1.0418  Δt=6.055e-01  νₜ_max=1.743e-02
+[ Info: t=  18.4  ⟨u⟩=1.0449  Δt=5.772e-01  νₜ_max=1.707e-02
+[ Info: t=  20.2  ⟨u⟩=1.0472  Δt=5.828e-01  νₜ_max=1.789e-02
+[ Info: t=  22.0  ⟨u⟩=1.0485  Δt=5.824e-01  νₜ_max=1.841e-02
+[ Info: t=  23.8  ⟨u⟩=1.0493  Δt=5.720e-01  νₜ_max=1.677e-02
+[ Info: t=  25.6  ⟨u⟩=1.0498  Δt=5.700e-01  νₜ_max=2.024e-02
+[ Info: t=  27.4  ⟨u⟩=1.0497  Δt=5.605e-01  νₜ_max=1.966e-02
+[ Info: t=  29.1  ⟨u⟩=1.0492  Δt=5.526e-01  νₜ_max=1.845e-02
+[ Info: t=  30.8  ⟨u⟩=1.0482  Δt=5.573e-01  νₜ_max=2.328e-02
+[ Info: t=  32.6  ⟨u⟩=1.0448  Δt=5.656e-01  νₜ_max=2.014e-02
+[ Info: t=  34.4  ⟨u⟩=1.0415  Δt=5.952e-01  νₜ_max=2.091e-02
+[ Info: t=  36.3  ⟨u⟩=1.0379  Δt=6.049e-01  νₜ_max=1.913e-02
+[ Info: t=  38.2  ⟨u⟩=1.0353  Δt=6.256e-01  νₜ_max=1.816e-02
+[ Info: t=  40.1  ⟨u⟩=1.0334  Δt=6.293e-01  νₜ_max=2.121e-02
+[ Info: t=  42.2  ⟨u⟩=1.0306  Δt=6.646e-01  νₜ_max=2.092e-02
+[ Info: t=  44.2  ⟨u⟩=1.0276  Δt=6.350e-01  νₜ_max=1.843e-02
+[ Info: t=  46.2  ⟨u⟩=1.0255  Δt=6.591e-01  νₜ_max=1.909e-02
+[ Info: t=  48.3  ⟨u⟩=1.0230  Δt=6.741e-01  νₜ_max=2.013e-02
+[ Info: t=  50.4  ⟨u⟩=1.0199  Δt=6.836e-01  νₜ_max=1.865e-02
+[ Info: t=  52.5  ⟨u⟩=1.0169  Δt=6.770e-01  νₜ_max=2.496e-02
+[ Info: t=  54.6  ⟨u⟩=1.0150  Δt=6.568e-01  νₜ_max=1.927e-02
+[ Info: t=  56.7  ⟨u⟩=1.0132  Δt=6.495e-01  νₜ_max=1.985e-02
+[ Info: t=  58.7  ⟨u⟩=1.0115  Δt=6.731e-01  νₜ_max=2.045e-02
+[ Info: t=  60.9  ⟨u⟩=1.0100  Δt=6.964e-01  νₜ_max=2.045e-02
+[ Info: t=  63.0  ⟨u⟩=1.0091  Δt=6.750e-01  νₜ_max=1.994e-02
+[ Info: t=  65.1  ⟨u⟩=1.0083  Δt=6.922e-01  νₜ_max=2.333e-02
+[ Info: t=  67.3  ⟨u⟩=1.0069  Δt=7.003e-01  νₜ_max=2.102e-02
+[ Info: t=  69.5  ⟨u⟩=1.0055  Δt=7.208e-01  νₜ_max=1.978e-02
+[ Info: t=  71.7  ⟨u⟩=1.0041  Δt=6.994e-01  νₜ_max=1.768e-02
+[ Info: t=  74.0  ⟨u⟩=1.0030  Δt=7.108e-01  νₜ_max=1.862e-02
+[ Info: t=  76.2  ⟨u⟩=1.0017  Δt=7.187e-01  νₜ_max=1.948e-02
+[ Info: t=  78.4  ⟨u⟩=1.0009  Δt=6.514e-01  νₜ_max=2.011e-02
+[ Info: Sampling u_x(y) profile averaged over (x, z) and time…
+[ Info: wrote /home/pgeorgakopoulos/foam/ShipFlow.jl/runs/channel395_waterlily_v3/ux_profile.csv
+Channel parameters:
+  N_HC          = 16 (half-channel cells)
+  N_Y           = 32 (full channel cells)
+  N_X, N_Z      = 32, 32
+  ν (grid units) = 2.3970e-03
+  Smagorinsky Cs = 0.170
+  u_τ (target)   = 0.0592
+  g_x (body force) = 2.1883e-04
+  t_end / tU/δ   = 80.0
+  t_avg_start    = 50.0
+  Output         = /home/pgeorgakopoulos/foam/ShipFlow.jl/runs/channel395_waterlily_v3
+
+=== WaterLily channel summary ===
+  ⟨u⟩ (final)  = 1.0002
+  u_τ estimate = 0.0215
+  Re_τ est.    = 143.6  (target 395.0)
+=================================

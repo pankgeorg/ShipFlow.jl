@@ -14,7 +14,7 @@
 using Printf
 using Statistics: mean
 
-const WL_CSV = abspath(joinpath(@__DIR__, "..", "runs", "channel395_waterlily_v2",
+const WL_CSV = abspath(joinpath(@__DIR__, "..", "runs", "channel395_waterlily_v3",
                                   "ux_profile.csv"))
 const OF_CSV = abspath(joinpath(@__DIR__, "..", "runs", "channel395_of_profile",
                                   "ux_profile.csv"))

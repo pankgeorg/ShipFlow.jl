@@ -112,14 +112,42 @@ function build()
     body  = channel_body()
     model = Smagorinsky((N_X, N_Y, N_Z); Cs=Float32(C_S), ν₀=Float32(NU_GRID))
 
-    # IC: laminar parabolic profile that integrates to U_bar, +3% perturbation.
-    # uBC=(0,0,0) keeps wall ghosts stationary (no-slip enforced by BDIM).
-    uλ = (i, x) -> i == 1 ? begin
-        η = (x[2] - N_HC) / N_HC   # -1 at lower wall, 0 at centre, +1 at upper wall
-        u_lam = 1.5 * U_BAR * (1 - η^2)   # parabolic, ⟨u⟩ = U_BAR
-        u_pert = 0.03 * U_BAR * cos(4π * x[1] / N_X) * sin(π * x[2] / N_Y) * cos(2π * x[3] / N_Z)
-        Float32(u_lam + u_pert)
-    end : 0f0
+    # IC: parabolic mean + Schoppa-Hussain-style streamwise vortex pair
+    # perturbation at 20 % of U_BAR. The pair injects O(1) wall-normal
+    # vorticity which is the key inflectional driver for transition.
+    # Uses deterministic seeding (no rand()) so the run is reproducible.
+    uλ = (i, x) -> begin
+        η = (x[2] - N_HC) / N_HC          # -1 at walls, 0 at centre
+        # streamwise mean (parabolic)
+        u_mean = 1.5 * U_BAR * (1 - η^2)
+        # broadband 3D wave packet — multiple modes excited together
+        ξx = 2π * x[1] / N_X
+        ξy = π  * x[2] / N_Y               # half-wavelength in y (no-slip at walls)
+        ξz = 2π * x[3] / N_Z
+        # Streamwise vortex pair (u, v, w consistent ish — not exactly
+        # divergence-free, but the projection step fixes that)
+        amp = 0.20 * U_BAR
+        if i == 1     # u-component: streamwise streaks
+            u_pert = amp * (1 - η^2) * (
+                0.6 * cos(ξx) * cos(2ξz) +
+                0.4 * cos(2ξx + 1.7) * cos(ξz + 0.5) +
+                0.3 * sin(3ξx) * cos(3ξz)
+            )
+            Float32(u_mean + u_pert)
+        elseif i == 2  # v-component: wall-normal kicks
+            v_pert = 0.5 * amp * sin(ξy) * (
+                sin(ξx) * sin(2ξz) +
+                0.5 * sin(2ξx) * sin(ξz)
+            )
+            Float32(v_pert)
+        else           # w-component
+            w_pert = 0.5 * amp * sin(ξy) * (
+                cos(ξx) * sin(ξz) +
+                0.4 * sin(3ξx + 0.8) * cos(ξz)
+            )
+            Float32(w_pert)
+        end
+    end
 
     # Constant streamwise body force — the standard channel-flow driver.
     g = (i, x, t) -> i == 1 ? Float32(G_X) : 0f0
