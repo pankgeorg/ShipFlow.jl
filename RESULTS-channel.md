@@ -120,3 +120,25 @@ Komminaho-Skote 2002).
 - `scripts/channel395_of_profile.jl` — OF post-processor
 - `scripts/compare_channel.jl` — side-by-side comparator
 - `runs/wl_channel_v3_log.txt` — WL run log
+
+## Update — WALE channel395 partial result
+
+Started a full-grid WALE production run (N_HC=32, N_X=128, N_Z=64, t_end=400)
+at 20:48. After 118 min wall time the run had reached t=297.5 of 400
+(74%). Interrupted to free compute; the partial log lives in
+`/tmp/wale_full.log` (1800 sample lines).
+
+Observations during the run:
+- Bulk ⟨u⟩ settled at 1.04 (vs Smagorinsky's 1.0 at the same g_x).
+  WALE gives less SGS damping near the walls (its defining feature),
+  so under the same fixed-pressure-gradient driver it produces a
+  ~4 % faster bulk flow. This is a physical effect, not a bug.
+- ν_t,max ≈ 0.03 (similar magnitude to Smagorinsky, but distributed
+  differently — concentrated in the channel interior, ~0 near walls).
+- Δt held near 0.67 cell-units, no instability.
+
+The run would have completed in another ~30–40 min wall. Re-running
+on dedicated compute is a clean follow-up; the smoke-level conclusion
+(WALE wired in, integrates with the channel driver, gives sensible
+ν_t and bulk numbers) is now confirmed.
+
