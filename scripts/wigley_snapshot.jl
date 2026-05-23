@@ -29,7 +29,7 @@ const NX = 128; const NY = 48; const NZ = 64
 const L_c = 56; const B_c = 10; const T_c = 8
 const ρ_w = 10.0; const ρ_a = 1.0
 const U∞ = 1.0
-const Fr = 0.25
+const Fr = parse(Float64, get(ENV, "WL_FR", "0.25"))
 const G_c = U∞^2 / (Fr^2 * L_c)
 const Re = 5000
 const ν_w_c = U∞ * L_c / Re
@@ -97,7 +97,8 @@ j_mid = Int(round(NY/2)) + 1
 u_slice = sim.flow.u[2:NX+1, j_mid, 2:NZ+1, 1]
 println("α range: ", extrema(α_slice), "  u_x range: ", extrema(u_slice))
 
-OUTDIR = abspath(joinpath(@__DIR__, "..", "runs", "wigley_snapshot"))
+tag = "Fr$(replace(string(Fr), "." => ""))"
+OUTDIR = abspath(joinpath(@__DIR__, "..", "runs", "wigley_snapshot_$(tag)"))
 mkpath(OUTDIR)
 
 # --- α (free surface) heatmap ---
