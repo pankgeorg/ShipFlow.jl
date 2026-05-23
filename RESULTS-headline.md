@@ -117,3 +117,31 @@ self-propulsion needs:
   and find the C_T where drag = thrust.
 
 Documented; will revisit at Re=10⁴ with Turbulence.jl Smagorinsky.
+
+## Update — self-propulsion via C_T parameter scan
+
+The PI controller hypothesised that the propeller wake reduces apparent
+hull drag ("thrust deduction"). A clean 7-point parameter scan at
+Re=1000, Fr=0.25, ρ=10:1 settles the question:
+
+| C_T | thrust | drag (steady) | T − D  |
+|----:|-------:|--------------:|-------:|
+| 0.0 |  0.00  | 53.00         | −53.00 |
+| 0.1 |  0.90  | 54.25         | −53.35 |
+| 0.2 |  1.81  | 55.29         | −53.48 |
+| 0.3 |  2.71  | 56.16         | −53.45 |
+| 0.5 |  4.52  | 57.67         | −53.15 |
+| 0.8 |  7.24  | 59.13         | −51.89 |
+| 1.2 | 10.86  | 59.49         | −48.63 |
+
+**Drag rises monotonically with thrust** (the classic propeller-induced
+suction at the stern). The PI controller's "drag fell with thrust"
+observation was a transient artefact of incomplete steady-state.
+
+**Self-propulsion would require C_T ≈ 6** at this hull / Re combination
+— far outside the realistic AD range. The blocker is Re: at Re=1000
+the friction coefficient is ~Cf=0.1, ~30× the full-scale Cf=0.003.
+A meaningful self-propulsion run needs Re ≥ 10⁵ with the Turbulence.jl
+LES wall model. That is the next prerequisite.
+
+Scan committed at `runs/wigley_selfprop_scan/scan.csv`.
