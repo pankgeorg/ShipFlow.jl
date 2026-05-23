@@ -26,24 +26,20 @@ const xc = NX/2;  const yc = NY/2;  const zc = NZ/2
 @printf "  L,B,T    = %.1f, %.1f, %.1f (cells)\n" L_c B_c T_c
 @printf "  Re_L     = %.0f → ν = %.3e\n" Re U∞ * L_c / Re
 
-# Build the tabulated SDF.  Sample box ~ 1.4× hull extent in each axis.
-const N_S = (96, 48, 48)   # sample points
-const half_L = L_c * 0.7
-const half_B = B_c * 0.7
-const T_pad  = T_c * 0.2
-spx = (2 * half_L) / (N_S[1] - 1)
-spy = (2 * half_B) / (N_S[2] - 1)
-spz = (T_c + 2 * T_pad) / (N_S[3] - 1)
-origin = (-half_L, -half_B, -T_c - T_pad)
+# Tabulate the SDF over the FULL simulation domain (in hull-frame).
+# AutoBody needs a smooth SDF everywhere — sampling only the hull
+# region leaves gradient=0 outside which gives NaN normals.
+# Use 1-cell spacing matching the WaterLily grid for best accuracy.
+const N_S = (NX + 2, NY + 2, NZ + 2)
+# Map: x_world ↦ x_hull = x_world - centre, so the table covers
+# x_hull ∈ [-xc, NX - xc] × [-yc, NY - yc] × [-zc, NZ - zc] in 1-cell steps.
+origin = (-Float64(xc), -Float64(yc), -Float64(zc))
+spacing = (1.0, 1.0, 1.0)
 
-# We sample in HULL-FRAME coords (midship at 0, waterline at z=0).
 table = sample_sdf((x, t) -> wigley_sdf(x, L_c, B_c, T_c),
-                   origin, (spx, spy, spz), N_S; T = Float32)
-@printf "  Tabulated SDF: %d × %d × %d samples, spacing (%.3f, %.3f, %.3f)\n" N_S... spx spy spz
+                   origin, spacing, N_S; T = Float32)
+@printf "  Tabulated SDF: %d × %d × %d samples over full domain\n" N_S...
 
-# Hull map: world (xc, yc, zc) is hull-frame origin.  Sample box origin
-# is relative to hull frame; the table's own coordinates are world-aligned
-# after we feed `x_hull = x_world - centre`.
 hull_map = (x, t) -> SVector(x[1] - xc, x[2] - yc, x[3] - zc)
 hull     = tabulated_sdf(table; map = hull_map)
 
