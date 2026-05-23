@@ -42,7 +42,8 @@ const ρ_a = 1.0
 # Reference scales — pick g_cell and U∞=1 (in cell-units) consistently.
 const U∞ = 1.0
 const Fr = parse(Float64, get(ENV, "WL_FR", "0.25"))
-const G_c = (U∞ / (Fr * sqrt(L_c)))^2 / L_c                # solve Fr = U/√(g L)
+# Froude number Fr = U / √(g·L)  ⇒  g_cell = U²/(Fr²·L_c)
+const G_c = U∞^2 / (Fr^2 * L_c)
 const Re = parse(Float64, get(ENV, "WL_RE", "1000"))
 const ν_w_c = U∞ * L_c / Re
 const ν_a_c = ν_w_c * 18                                   # air ~18x more viscous than water kinematically
