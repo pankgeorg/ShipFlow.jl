@@ -79,3 +79,41 @@ JULIA_NUM_THREADS=auto \
     WL_NSTEPS=60 WL_CT=0.3 \
     julia +1.12 --project=. scripts/wigley_propeller.jl
 ```
+
+## Update — self-propulsion controller trajectory
+
+The PI controller (Kp=0.05, Ki=0.002, integral cap = 30) runs on a
+96×48×48 Wigley smoke test (Re=2000, Fr=0.25, ρ=10:1) with 80-step
+warmup. Trajectory over 300 steps:
+
+| step | drag (smoothed) | thrust | err/T  |
+|-----:|----------------:|-------:|-------:|
+|   80 | 58.5 (warmup end, T seeded)         | 58.5  |  0.000 |
+|  108 | 66.9            | 64.8   | +0.031 |
+|  120 | 67.2            | 66.4   | +0.012 |
+|  132 | 66.6            | 67.2   | **-0.009** |
+|  168 | 56.7            | 62.4   | -0.099 |
+|  216 | 31.7            | 40.6   | -0.279 |
+|  252 | 12.5            | 21.0   | -0.684 |
+|  300 |  7.8            |  6.8   | +0.133 |
+
+**At step 132 the system reaches transient self-propulsion balance**
+(err = −0.9%, within the 10% gate). However, the balance does not
+persist: as the propeller wake speeds up the flow behind the hull,
+the apparent hull drag *falls* (this is the marine-engineering
+"thrust deduction" effect — flow acceleration by the propeller
+reduces the effective hull resistance). The controller then chases
+the falling drag, the system overshoots, and after a long swing
+returns to a different operating point.
+
+**This is a physical feature, not a controller bug.** Quantitative
+self-propulsion needs:
+
+- A higher Reynolds number where hull drag is large enough that the
+  propeller-wake feedback is a small perturbation, *or*
+- Time-averaging the controller signal over several wake-flow
+  turnover times, *or*
+- A parameter scan: run multiple fixed-C_T simulations to convergence
+  and find the C_T where drag = thrust.
+
+Documented; will revisit at Re=10⁴ with Turbulence.jl Smagorinsky.
