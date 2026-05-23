@@ -31,6 +31,8 @@ const T_AVG    = parse(Float64, get(ENV, "WL_TAVG",  "100.0"))
 const N_X      = parse(Int,    get(ENV, "N_X",      "128"))    # streamwise cells
 const N_Z      = parse(Int,    get(ENV, "N_Z",      "64"))     # spanwise cells
 const C_S      = parse(Float64, get(ENV, "C_S",     "0.17"))
+const C_W      = parse(Float64, get(ENV, "C_W",     "0.5"))
+const MODEL    = get(ENV, "TURB_MODEL", "smagorinsky")  # or "wale"
 const OUT_SUFFIX = get(ENV, "WL_SUFFIX", "")
 
 const OUTDIR = abspath(joinpath(@__DIR__, "..", "runs",
@@ -110,7 +112,12 @@ end
 
 function build()
     body  = channel_body()
-    model = Smagorinsky((N_X, N_Y, N_Z); Cs=Float32(C_S), ν₀=Float32(NU_GRID))
+    model = if MODEL == "wale"
+        WALE((N_X, N_Y, N_Z); Cw=Float32(C_W), ν₀=Float32(NU_GRID))
+    else
+        Smagorinsky((N_X, N_Y, N_Z); Cs=Float32(C_S), ν₀=Float32(NU_GRID))
+    end
+    @info "Turbulence model: $MODEL"
 
     # IC: parabolic mean + Schoppa-Hussain-style streamwise vortex pair
     # perturbation at 20 % of U_BAR. The pair injects O(1) wall-normal
