@@ -24,6 +24,12 @@ using ShipShapes: wigley_volume, StaticArrays
 const SVector = StaticArrays.SVector
 using Printf
 
+# Turbulence opt-in (TURB_MODEL=smagorinsky or wale; default off)
+const TURB = get(ENV, "TURB_MODEL", "")
+if !isempty(TURB)
+    using Turbulence
+end
+
 # Grid
 const NX = parse(Int, get(ENV, "WL_NX", "192"))
 const NY = parse(Int, get(ENV, "WL_NY", "64"))
@@ -79,6 +85,16 @@ vof = VoFFlow((NX, NY, NZ);
     T = T_NUM,
 )
 
+# Optional turbulence model; its `.ν` field will hold ν_mol + ν_eddy.
+turb_model = if TURB == "smagorinsky"
+    Smagorinsky((NX, NY, NZ); Cs=T_NUM(0.17), ν₀=T_NUM(0))
+elseif TURB == "wale"
+    WALE((NX, NY, NZ); Cw=T_NUM(0.5), ν₀=T_NUM(0))
+else
+    nothing
+end
+isnothing(turb_model) || @info "Turbulence model: $TURB"
+
 function vof_pois_ctor(flow)
     L = similar(flow.μ₀)
     @inbounds for I in CartesianIndices(L)
@@ -88,9 +104,14 @@ function vof_pois_ctor(flow)
         perdir = (2,))
 end
 
+# Pick ν array passed to Flow:
+#   no turbulence  → vof.ν  (= μ/ρ_local refreshed each step)
+#   turbulence     → turb_model.ν (refreshed each step from u + vof.ν)
+ν_for_flow = isnothing(turb_model) ? vof.ν : turb_model.ν
+
 sim = WaterLily.Simulation((NX, NY, NZ), (T_NUM(U∞), T_NUM(0), T_NUM(0)), L_c;
     T = T_NUM,
-    ν = vof.ν,
+    ν = ν_for_flow,
     g = (i, x, t) -> i == 3 ? T_NUM(-G_c) : T_NUM(0),
     Δt = 0.25,
     body = hull,
@@ -127,6 +148,8 @@ for step in 1:NSTEPS
     WaterLily.mom_step!(sim.flow, sim.pois;
         pois_tol = T_NUM(1e-8), pois_itmx = 100)
     step_vof!(vof, sim; dt = sim.flow.Δt[end-1])
+    # Refresh turbulent ν = vof.ν (= μ/ρ molecular) + ν_eddy(u).
+    isnothing(turb_model) || update_νt!(turb_model, sim.flow.u, vof.ν)
     if mod(step, REPORT_EVERY) == 0 || step ≤ 3
         Fp = WaterLily.pressure_force(sim)
         Fv = WaterLily.viscous_force(sim)
