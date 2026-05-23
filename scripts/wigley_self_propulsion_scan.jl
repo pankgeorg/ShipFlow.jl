@@ -47,7 +47,7 @@ const T_NUM = Float64
 const H_w_c   = NZ/2
 const hull_xc = NX/3; const hull_yc = NY/2; const hull_zc = H_w_c
 const prop_xc = hull_xc + L_c/2 + T_c/2
-const R_prop  = T_c / 2 * 0.8
+const R_prop  = parse(Float64, get(ENV, "WL_RPROP_FAC", "0.8")) * T_c / 2
 const W_prop  = 1.5
 
 const CT_LIST = let s = get(ENV, "WL_CT_LIST", "0.0,0.1,0.2,0.3,0.4,0.5,0.7,1.0")
@@ -125,18 +125,19 @@ data = open(joinpath(OUTDIR, "scan.csv"), "r") do io
     lines = readlines(io)[2:end]
     [parse.(Float64, split(l, ',')) for l in lines]
 end
-self_prop_CT = nothing
-for i in 1:length(data)-1
-    a, b = data[i], data[i+1]
-    da, db = a[4], b[4]                   # T - D column
-    if sign(da) != sign(db)
-        # Linear interpolation: T-D = 0
-        t = -da / (db - da)
-        self_prop_CT = a[1] + t * (b[1] - a[1])
-        break
+function find_sign_change(data)
+    for i in 1:length(data)-1
+        a, b = data[i], data[i+1]
+        da, db = a[4], b[4]
+        # Strict sign change: use product test (handles zero edge case too)
+        if da * db < 0
+            t = -da / (db - da)
+            return a[1] + t * (b[1] - a[1])
+        end
     end
+    return nothing
 end
-
+self_prop_CT = find_sign_change(data)
 println()
 if self_prop_CT === nothing
     println("No sign change observed — extend CT_LIST.")

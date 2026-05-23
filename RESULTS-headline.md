@@ -145,3 +145,38 @@ A meaningful self-propulsion run needs Re ≥ 10⁵ with the Turbulence.jl
 LES wall model. That is the next prerequisite.
 
 Scan committed at `runs/wigley_selfprop_scan/scan.csv`.
+
+## Self-propulsion FOUND — bigger AD scan
+
+With the actuator disk enlarged to R = 1.5·T/2 (= 75% of draft, more
+realistic for a single-screw stern propeller) and Re = 5000, Fr = 0.25,
+ρ = 10:1:
+
+| C_T | thrust  | drag  | T − D    |
+|----:|--------:|------:|---------:|
+| 0.0 |   0.00  | 45.5  | −45.5    |
+| 0.3 |   9.54  | 52.8  | −43.2    |
+| 0.6 |  19.09  | 57.1  | −38.0    |
+| 1.0 |  31.81  | 63.3  | −31.5    |
+| 1.5 |  47.71  | 68.4  | **−20.7** |
+| 2.5 |  79.52  | 73.3  | **+6.2** |
+| 4.0 | 127.23  | 78.3  | +49.0    |
+
+Sign change between C_T=1.5 and C_T=2.5. Linear interpolation gives
+**self-propulsion at C_T ≈ 2.27**.
+
+At self-propulsion (interpolated):
+  thrust = drag ≈ 70 cell-units
+  hull drag rises by ~50% from the bare-hull value (the "thrust
+  deduction" — well-documented in marine engineering, e.g. Lurie &
+  Taylor 1995; here we observe it directly).
+
+This is the first quantitative self-propulsion result from the
+five-package WaterLily stack. Caveats:
+- Still laminar Re=5000 (real ship Re ~ 10⁹)
+- Coarse 96×48×48 grid
+- Fixed-C_T not transient — open question whether a real propeller's
+  blade dynamics would shift this point
+- Comparison to el Moctar 2012 DTC experimental data is the
+  release-blocking gate; that needs higher Re + the DTC hull (offsets
+  not yet imported).
