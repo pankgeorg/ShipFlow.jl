@@ -66,10 +66,10 @@ end
 
 function main()
     of  = load_csv(joinpath(ROOT, "runs", "damBreak_front",     "front_vs_t.csv"))
-    suffix = get(ENV, "WL_N_TAG", "N64")  # set WL_N_TAG=N128 for high-res
+    suffix = get(ENV, "WL_N_TAG", "N64")  # set WL_N_TAG=N128_vL etc.
     w10 = load_csv(joinpath(ROOT, "runs", "damBreak_waterlily", "front_vs_t_rho10_$(suffix).csv"))
     w1k = load_csv(joinpath(ROOT, "runs", "damBreak_waterlily", "front_vs_t_rho1000_$(suffix).csv"))
-    println("Comparing WL resolution: $suffix")
+    println("Comparing WL outputs: $suffix")
     of === nothing && error("OpenFOAM reference missing — run damBreak_of_front.jl first")
     w10 === nothing && w1k === nothing && error("WaterLily output missing")
 
