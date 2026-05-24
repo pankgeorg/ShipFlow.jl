@@ -11,11 +11,12 @@ Pkg.develop([
     Pkg.PackageSpec(path=joinpath(@__DIR__, "..", "..", "VoF.jl")),
     Pkg.PackageSpec(path=joinpath(@__DIR__, "..", "..", "ShipShapes.jl")),
     Pkg.PackageSpec(path=joinpath(@__DIR__, "..", "..", "Turbulence.jl")),
+    Pkg.PackageSpec(path=joinpath(@__DIR__, "..", "..", "Propellers.jl")),
 ]; io=devnull)
 Pkg.add("CairoMakie"; io=devnull)
 println("packages added"); flush(stdout)
 
-using WaterLily, VoF, ShipShapes, Turbulence
+using WaterLily, VoF, ShipShapes, Turbulence, Propellers
 using ShipShapes: StaticArrays
 const SVector = StaticArrays.SVector
 using Printf, CairoMakie, Statistics
@@ -52,6 +53,25 @@ hull = ShipShapes.Wigley(; L = L_c, B = B_c, T = T_c, map = hull_map)
 
 vof = VoFFlow((NX, NY, NZ);
     α₀ = α₀, ρ_w = ρ_w, ρ_a = ρ_a, μ_w = μ_w_c, μ_a = μ_a_c, T = Float32)
+
+# Optional actuator-disk propeller behind the stern (WL_PROP=1)
+const HAS_PROP = get(ENV, "WL_PROP", "0") == "1"
+const R_prop  = Float32(T_c / 2 * 0.6)
+const prop_xc = Float32(hull_xc + L_c/2 + T_c/2)
+const prop_yc = hull_yc
+const prop_zc = Float32(H_w_c - T_c/2)
+const C_T     = parse(Float32, get(ENV, "WL_CT", "0.6"))
+const thrust  = 0.5f0 * π * R_prop^2 * U∞^2 * C_T
+const disk = ActuatorDisk(
+    center = SVector(prop_xc, prop_yc, prop_zc),
+    axis   = SVector(1f0, 0f0, 0f0),
+    R      = R_prop, w = 1.5f0,
+    thrust = thrust,
+)
+disk_udf = HAS_PROP ? ((flow, t; kwargs...) -> disk(flow, t; kwargs...)) : nothing
+if HAS_PROP
+    @printf "  Propeller     = R=%.2f at (%.1f, %.1f, %.1f), C_T=%.2f, thrust=%.3f\n" R_prop prop_xc prop_yc prop_zc C_T thrust
+end
 
 function vof_pois_ctor(flow)
     L = similar(flow.μ₀)
@@ -102,7 +122,11 @@ mkpath(OUTDIR)
 # Burn-in
 @info "Burn-in 15 steps…"; flush(stdout)
 for _ in 1:15
-    WaterLily.mom_step!(sim.flow, sim.pois; pois_tol=1f-6, pois_itmx=50)
+    if HAS_PROP
+        WaterLily.mom_step!(sim.flow, sim.pois; udf=disk_udf, pois_tol=1f-6, pois_itmx=50)
+    else
+        WaterLily.mom_step!(sim.flow, sim.pois; pois_tol=1f-6, pois_itmx=50)
+    end
     if get(ENV, "WL_MULES", "0") == "1"
         step_vof_mules!(vof, sim; dt=sim.flow.Δt[end-1])
     else
@@ -124,7 +148,11 @@ x_stern = hull_xc + L_c/2
 
 t0 = time()
 for frame in 1:NFRAMES
-    WaterLily.mom_step!(sim.flow, sim.pois; pois_tol=1f-6, pois_itmx=50)
+    if HAS_PROP
+        WaterLily.mom_step!(sim.flow, sim.pois; udf=disk_udf, pois_tol=1f-6, pois_itmx=50)
+    else
+        WaterLily.mom_step!(sim.flow, sim.pois; pois_tol=1f-6, pois_itmx=50)
+    end
     if get(ENV, "WL_MULES", "0") == "1"
         step_vof_mules!(vof, sim; dt=sim.flow.Δt[end-1])
     else
@@ -146,6 +174,10 @@ for frame in 1:NFRAMES
                Point2f(hull_xc + L_c/2, hull_yc + B_c/2),
                Point2f(hull_xc - L_c/2, hull_yc + B_c/2)],
         color=:transparent, strokecolor=:black, strokewidth=1)
+    if HAS_PROP
+        scatter!(ax, [Point2f(prop_xc, prop_yc)];
+            color=:orange, marker=:cross, markersize=14, strokewidth=1.5)
+    end
     xs = collect(Float32(0):Float32(NX) - x_stern)
     lines!(ax, xs .+ x_stern, hull_yc .+ xs .* Float32(tan(ang));
         color=:lime, linestyle=:dash, linewidth=1)
