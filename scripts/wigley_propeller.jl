@@ -79,12 +79,24 @@ vof = VoFFlow((NX, NY, NZ);
     α₀ = α₀, ρ_w = ρ_w, ρ_a = ρ_a, μ_w = μ_w_c, μ_a = μ_a_c, T = T_NUM,
 )
 turb = WALE((NX, NY, NZ); Cw = T_NUM(0.5), ν₀ = T_NUM(0))
-disk = ActuatorDisk(
-    center = SVector(prop_xc, prop_yc, prop_zc),
-    axis   = SVector(1.0, 0.0, 0.0),
-    R = R_prop, w = W_prop,
-    thrust = thrust,
-)
+const HAS_SWIRL = get(ENV, "WL_SWIRL", "0") == "1"
+const torque    = parse(Float64, get(ENV, "WL_TORQUE_RATIO", "0.5")) * thrust * R_prop
+disk = HAS_SWIRL ?
+    SwirlingDisk(
+        center = SVector(prop_xc, prop_yc, prop_zc),
+        axis   = SVector(1.0, 0.0, 0.0),
+        R = R_prop, w = W_prop,
+        thrust = thrust, torque = torque,
+    ) :
+    ActuatorDisk(
+        center = SVector(prop_xc, prop_yc, prop_zc),
+        axis   = SVector(1.0, 0.0, 0.0),
+        R = R_prop, w = W_prop,
+        thrust = thrust,
+    )
+if HAS_SWIRL
+    @printf "  Swirl ON   = torque=%.3f (Q/T·R = %.2f)\n" torque torque/(thrust*R_prop)
+end
 
 function vof_pois_ctor(flow)
     L = similar(flow.μ₀)
