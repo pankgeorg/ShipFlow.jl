@@ -123,13 +123,15 @@ for frame in 1:NFRAMES
     step_vof_mules!(vof, sim; dt=sim.flow.Δt[end-1], perdir=(2,))
 
     # x-z slice at y=hull_yc: take u_x (component 1).
+    # Mask air cells (α<0.5) to NaN so the heatmap shows water-only velocity.
     NX_α, NY_α, NZ_α = size(vof.α)
     ux_slice = Array{Float32}(undef, NX_α, NZ_α)
     α_slice  = Array{Float32}(undef, NX_α, NZ_α)
     @inbounds for i in 1:NX_α, k in 1:NZ_α
         # u_x lives on the x-face — interpolate to cell centre
-        ux_slice[i, k] = 0.5f0 * (sim.flow.u[i, j_slice, k, 1] + sim.flow.u[min(i+1, NX_α), j_slice, k, 1])
+        u_here = 0.5f0 * (sim.flow.u[i, j_slice, k, 1] + sim.flow.u[min(i+1, NX_α), j_slice, k, 1])
         α_slice[i, k]  = vof.α[i, j_slice, k]
+        ux_slice[i, k] = α_slice[i, k] >= 0.5f0 ? u_here : NaN32
     end
 
     fig = Figure(size=(1100, 500))
@@ -138,7 +140,8 @@ for frame in 1:NFRAMES
         title=@sprintf("Side view at y=%.1f (centerline)  —  frame %3d  Fr=%.2f", hull_yc, frame, FR))
     # u_x heatmap
     hm = heatmap!(ax, 1:size(ux_slice,1), 1:size(ux_slice,2), ux_slice;
-        colormap=:roma, colorrange=(0f0, 2f0))
+        colormap=:roma, colorrange=(0f0, 2f0),
+        nan_color=RGBAf(0.85, 0.92, 1.0, 1.0))   # light sky-blue for air
     Colorbar(fig[1, 2], hm, label="u_x / U∞")
     # Free surface contour at α=0.5
     contour!(ax, 1:size(α_slice,1), 1:size(α_slice,2), α_slice;
