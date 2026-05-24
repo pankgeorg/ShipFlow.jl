@@ -159,3 +159,23 @@ JULIA_NUM_THREADS=auto WL_N=64 WL_TEND=0.5 WL_RHO_RATIO=1000 WL_TAG=rho1000_N64 
     julia +1.12 --project=. scripts/damBreak_waterlily.jl
 julia +1.12 --project=. scripts/compare_damBreak.jl
 ```
+
+## Mass-repair: closing toward the 0.1 % gate
+
+Added `mass_repair=true` kwarg to `VoF.step_vof!` (commit `5f2f470`).
+After advect + clamp, the global mass deficit is redistributed into
+interface cells (0 < α < 1) proportional to their [0,1] slack.
+
+Re-ran damBreak ρ=10:1 N=64 with repair on:
+
+| metric                                  | post-Hook-1-fix | + mass_repair |
+|----------------------------------------:|----------------:|--------------:|
+| mass conservation m/m_0 over run        |  0.96           | **1.0000**    |
+| front-position RMS vs Martin-Moyce 1952 |  4.1 %          | **3.7 %**     |
+| max error                               |  7.0 %          | **6.5 %**     |
+
+This is *global* mass conservation only — spatial structure is not
+preserved per-face, so it does not help wave-pattern cases (e.g.
+Kelvin) where local conservation matters. But for the integral-
+quantity damBreak gate, mass conservation now meets the Phase-2
+0.1 % gate stated in [VoF PLAN](../VoF.jl/PLAN.md).

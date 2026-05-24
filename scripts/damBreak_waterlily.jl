@@ -165,7 +165,8 @@ function run!(sim, vof)
         )
         dt_cell = sim.flow.Δt[end-1]
         dt_phys = dt_cell * ΔX / U_ref
-        step_vof!(vof, sim; dt = dt_cell)
+        step_vof!(vof, sim; dt = dt_cell,
+            mass_repair = parse(Bool, get(ENV, "WL_MASS_REPAIR", "false")))
         t_cell += dt_cell
         t_phys += dt_phys
         step_count += 1

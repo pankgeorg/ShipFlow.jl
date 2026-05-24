@@ -86,7 +86,8 @@ t0 = time()
 for step in 1:NSTEPS
     WaterLily.mom_step!(sim.flow, sim.pois;
         pois_tol = 1f-6, pois_itmx = 50)
-    step_vof!(vof, sim; dt = sim.flow.Δt[end-1])
+    step_vof!(vof, sim; dt = sim.flow.Δt[end-1],
+        mass_repair = parse(Bool, get(ENV, "WL_MASS_REPAIR", "true")))
     if CW > 0
         update_νt!(turb, sim.flow.u, vof.ν)
     else
