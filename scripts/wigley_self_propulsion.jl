@@ -97,6 +97,9 @@ sim = WaterLily.Simulation((NX, NY, NZ),
 
 const NSTEPS = parse(Int, get(ENV, "WL_NSTEPS", "200"))
 
+const N_WARMUP = parse(Int, get(ENV, "WL_WARMUP", "40"))
+const INTEGRAL_CAP = parse(Float64, get(ENV, "WL_I_CAP", "100.0"))
+
 function run_controller(NSTEPS, T_INIT)
     thrust = T_INIT
     integral = 0.0
@@ -117,17 +120,31 @@ function run_controller(NSTEPS, T_INIT)
         drag = -(Float64(Fp[1]) + Float64(Fv[1]))
 
         drag_smooth = step == 1 ? drag : α_smooth * drag + (1 - α_smooth) * drag_smooth
-        err = drag_smooth - thrust
-        integral += err * sim.flow.Δt[end-1]
-        Δthrust = KP * err + KI * integral
-        push!(err_history, err / max(abs(drag_smooth), 1.0))
 
-        thrust = max(0.0, min(2 * drag_smooth + 1.0, thrust + Δthrust))
+        if step ≤ N_WARMUP
+            # Warm-up: let the drag transient settle without driving the
+            # controller. Reset integral at the end of warmup.
+            push!(err_history, NaN)
+            if step == N_WARMUP
+                thrust = drag_smooth   # seed thrust at the warmup drag estimate
+                integral = 0.0
+            end
+        else
+            err = drag_smooth - thrust
+            integral = clamp(integral + err * sim.flow.Δt[end-1],
+                             -INTEGRAL_CAP, INTEGRAL_CAP)
+            Δthrust = KP * err + KI * integral
+            push!(err_history, err / max(abs(drag_smooth), 1.0))
+            thrust = max(0.0, min(2 * abs(drag_smooth) + 1.0, thrust + Δthrust))
+        end
 
-        if mod(step, max(1, NSTEPS ÷ 20)) == 0 || step ≤ 3
+        if mod(step, max(1, NSTEPS ÷ 25)) == 0 || step ≤ 3 || step == N_WARMUP
             u_max = maximum(abs, sim.flow.u)
-            @info @sprintf("step=%4d  drag=%6.2f  drag_s=%6.2f  T=%6.2f  err/T=%+.3f  |u|=%.3f",
-                step, drag, drag_smooth, thrust, err/max(drag_smooth, 1.0), u_max)
+            phase = step ≤ N_WARMUP ? "warm" : "ctrl"
+            @info @sprintf("step=%4d %s  drag=%6.2f  drag_s=%6.2f  T=%6.2f  err/T=%+.3f  intg=%.1f  |u|=%.3f",
+                step, phase, drag, drag_smooth, thrust,
+                (drag_smooth - thrust)/max(abs(drag_smooth), 1.0),
+                integral, u_max)
             if !isfinite(u_max) || u_max > 50
                 @warn "Blow-up"; break
             end

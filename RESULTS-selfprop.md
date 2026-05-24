@@ -20,33 +20,52 @@ drag.
 
 ## Results
 
+(Re-run with the corrected WaterLily Hook 1 array-ν reference semantics;
+see "Note on the LES coupling fix" below.)
+
 | C_T | thrust  | drag  | T − D     |
 |----:|--------:|------:|----------:|
-| 0.0 |   0.00  | 45.5  | −45.5     |
-| 0.3 |   9.54  | 52.8  | −43.2     |
-| 0.6 |  19.09  | 57.1  | −38.0     |
-| 1.0 |  31.81  | 63.3  | −31.5     |
-| 1.5 |  47.71  | 68.4  | **−20.7** |
-| 2.5 |  79.52  | 73.3  | **+6.2**  |
-| 4.0 | 127.23  | 78.3  | +49.0     |
+| 0.0 |   0.00  | 47.7  | −47.7     |
+| 0.3 |   9.54  | 55.0  | −45.4     |
+| 0.6 |  19.09  | 59.2  | −40.1     |
+| 1.0 |  31.81  | 63.1  | −31.3     |
+| 1.5 |  47.71  | 67.5  | **−19.8** |
+| 2.5 |  79.52  | 75.6  | **+4.0**  |
+| 4.0 | 127.23  | 85.9  | +41.3     |
 
 Sign change between C_T = 1.5 and C_T = 2.5. Linear interpolation gives
 
-**Self-propulsion C_T ≈ 2.27.**
+**Self-propulsion C_T ≈ 2.33.**
 
-At self-propulsion the disk thrust equals hull drag at ~70 cell-units.
+## Note on the LES coupling fix
+
+The original scan (committed at git `52042ed`, before WaterLily commit
+`e4b8854`) reported C_T ≈ **2.27**. A subsequent bug-fix in WaterLily —
+having `Flow` store a *reference* to the per-cell ν array instead of a
+copy — re-coupled the WALE eddy viscosity into the momentum equation.
+With the fix in place the scan yields C_T ≈ **2.33**, a 3 % shift.
+
+Implications:
+* The qualitative self-propulsion finding (positive thrust deduction,
+  C_T around 2-2.5 for this geometry+Re) is robust to the bug.
+* Bare-hull drag rose 5 % (45.5 → 47.7) because LES now provides real
+  sub-grid dissipation.
+* The two-decimal-place self-propulsion C_T is now mildly more
+  trustworthy — the LES is finally feeding back into the resistance.
+
+At self-propulsion the disk thrust equals hull drag at ~74 cell-units.
 
 ## Physical observation: thrust deduction
 
-Bare-hull drag (C_T = 0) is **45.5**. At self-propulsion (C_T ≈ 2.27)
-the hull experiences drag ≈ **70** — a **+54%** increase.
+Bare-hull drag (C_T = 0) is **47.7**. At self-propulsion (C_T ≈ 2.33)
+the hull experiences drag ≈ **74** — a **+55%** increase.
 
 This is the propeller-induced stern suction, commonly written as the
 thrust deduction factor `t`:
 
 ```
 t = (T − R_T) / T  where R_T is the bare-hull resistance
-  ≈ (70 − 45.5) / 70  ≈ 0.35
+  ≈ (74 − 47.7) / 74  ≈ 0.36
 ```
 
 Marine-engineering empirical correlations (Lurie & Taylor 1995;
