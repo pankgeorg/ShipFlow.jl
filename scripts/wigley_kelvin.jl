@@ -133,12 +133,17 @@ ax = Axis(fig[1, 1]; aspect = DataAspect(),
     xlabel="x (cells, +x = downstream)",
     ylabel="y (cells)",
     title=@sprintf("Free-surface elevation η — Wigley hull at Fr=%.2f, Re=%.0f, step=%d", Fr, Re, NSTEPS))
-# Clip the colour range so we see the wave train rather than the
-# extreme bow/stern outliers. Take the typical wake amplitude as
-# the 95th-percentile of |η|; clip outliers to the colormap edge.
+# Subtract the median (= "the baseline VoF mass-loss drift") so what
+# we render is the WAVE pattern, not the global surface drop.
 ηfinite = filter(isfinite, vec(η))
-ηmax = isempty(ηfinite) ? 1f0 : Float32(quantile(abs.(ηfinite), 0.95)) * 2
-hm = heatmap!(ax, 1:NX, 1:NY, η; colormap=:RdBu, colorrange=(-ηmax, ηmax),
+η_med = isempty(ηfinite) ? 0f0 : Float32(quantile(ηfinite, 0.5))
+η_disp = η .- η_med
+@printf("subtracted baseline η_median = %.3f\n", η_med)
+# Clip color range to twice the 90th-percentile of |η_displayed|.
+ηd_finite = filter(isfinite, vec(η_disp))
+ηmax = isempty(ηd_finite) ? 1f0 : Float32(quantile(abs.(ηd_finite), 0.90)) * 2
+ηmax = max(ηmax, 0.5f0)
+hm = heatmap!(ax, 1:NX, 1:NY, η_disp; colormap=:RdBu, colorrange=(-ηmax, ηmax),
     nan_color=:grey80, highclip=:darkblue, lowclip=:darkred)
 Colorbar(fig[1, 2], hm, label="η (cells from waterline)")
 # Annotate hull location
