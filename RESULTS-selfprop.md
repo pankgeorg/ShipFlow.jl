@@ -143,3 +143,36 @@ prediction: any real-scale Re=10⁶+ run on this hull should give a
 similar value.
 
 Plot: `runs/wigley_selfprop_scan/CT_vs_Re.png`.
+
+## Froude-number sweep at self-propulsion (Re=10000)
+
+A 5×5 2D scan (5 Fr values × 5 C_T values) gives self-propulsion C_T
+and the corresponding drag as a function of Froude number:
+
+| Fr   | self-prop C_T | D_bare-hull | D at self-prop | t = (D_sp-D_0)/D_sp |
+|-----:|--------------:|------------:|---------------:|---------------------:|
+| 0.15 | **0.83**      | 27.5        | ~27            | -2 % (≈0)            |
+| 0.20 | 2.33          | 43.0        | ~74            | **0.42**             |
+| 0.25 | 2.24          | 47.7        | ~71            | 0.32                 |
+| 0.30 | 2.17          | 50.2        | ~69            | 0.27                 |
+| 0.35 | 2.03          | 50.6        | ~65            | **0.22**             |
+
+Two physical findings:
+
+1. **Negligible thrust deduction at low Fr.** At Fr = 0.15 the propeller
+   *helps* — drag at self-propulsion (~27) is essentially equal to the
+   bare-hull drag (27.5), and at low C_T the propeller actually
+   *reduces* drag below bare-hull. With minimal wave-making and the
+   wake dominated by the stern boundary layer, the AD's inflow
+   acceleration shapes the wake favourably. Empirical correlations
+   typically assume t > 0; this regime would need direct CFD to design
+   for.
+
+2. **Thrust deduction factor falls with Fr.** From t ≈ 0.42 at Fr =
+   0.20 down to 0.22 at Fr = 0.35. As Fr rises, the wave-making
+   resistance becomes the dominant share of total drag, and the
+   propeller-induced stern suction is a smaller relative perturbation.
+   This trend matches qualitative discussion in Lurie & Taylor 1995
+   for slender hulls (though they don't tabulate Fr-resolved t).
+
+Plot: `runs/wigley_selfprop_FrScan/CT_t_vs_Fr.png`.
