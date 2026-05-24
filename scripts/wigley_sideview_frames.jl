@@ -154,13 +154,19 @@ for frame in 1:NFRAMES
                Point2f(hull_xc - L_c/2, hull_zc)];
         color=(:grey20, 0.7), strokecolor=:black, strokewidth=1.5)
     # Cosmetic above-water freeboard / deck (NOT in the simulation; the
-    # Wigley model is wetted-only, but a ship sketch helps reading).
-    fb = T_c / 3f0
-    poly!(ax, [Point2f(hull_xc - L_c*0.45, hull_zc),
-               Point2f(hull_xc + L_c*0.45, hull_zc),
-               Point2f(hull_xc + L_c*0.40, hull_zc + fb),
-               Point2f(hull_xc - L_c*0.40, hull_zc + fb)];
-        color=(:grey45, 0.45), strokecolor=:black, strokewidth=1.0)
+    # Wigley model is wetted-only). Tall enough to clear wake amplitude.
+    fb = 1.5f0 * T_c
+    poly!(ax, [Point2f(hull_xc - L_c*0.48, hull_zc),
+               Point2f(hull_xc + L_c*0.48, hull_zc),
+               Point2f(hull_xc + L_c*0.42, hull_zc + fb),
+               Point2f(hull_xc - L_c*0.42, hull_zc + fb)];
+        color=(:grey55, 0.95), strokecolor=:black, strokewidth=1.2)
+    # Small deckhouse for ship-recognition
+    poly!(ax, [Point2f(hull_xc - L_c*0.15, hull_zc + fb),
+               Point2f(hull_xc + L_c*0.10, hull_zc + fb),
+               Point2f(hull_xc + L_c*0.08, hull_zc + fb + T_c*0.6),
+               Point2f(hull_xc - L_c*0.13, hull_zc + fb + T_c*0.6)];
+        color=(:grey70, 0.95), strokecolor=:black, strokewidth=1.0)
     # Still-water reference line
     hlines!(ax, [hull_zc]; color=:grey50, linestyle=:dot, linewidth=1)
     # Disk marker
