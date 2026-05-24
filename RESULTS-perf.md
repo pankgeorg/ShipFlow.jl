@@ -89,3 +89,25 @@ loops — 30+ minutes per 7-point scan was the lived experience before
 the force-subsampling fix. With the fix, a 7-point scan now sits at
 ~10-12 min on this host. The single biggest remaining lever for CPU
 runs is Float32 hygiene; the biggest available win is GPU.
+
+## MULES overhead
+
+After the MULES landing (commits `5e78ecf`, `13350c1`, `62c8f79`), measure on
+the same 96×48×48 headline grid (Float32, scalar ν disabled, no turbulence):
+
+| step component                          | vanLeer | MULES  | factor |
+|-----------------------------------------|--------:|-------:|-------:|
+| `step_vof!` / `step_vof_mules!` alone   |  27 ms  | 263 ms |  ~10× |
+| full mom_step + vof + WALE              | 378 ms  | 608 ms |  +60 % |
+
+MULES adds ~230 ms/step on this grid — significant but acceptable for the
+free-surface cases where the Kelvin wedge fidelity matters. Likely wins:
+
+| Item                                                  | est. gain | effort |
+|-------------------------------------------------------|----------:|-------:|
+| Pre-allocate MULES workspace in `VoFFlow` struct      |     40 %  | small  |
+| Fuse Φ-compute + α_UD-update into one pass            |     20 %  | small  |
+| Compute `_local_extrema` inline in P_pos/P_neg loop   |     10 %  | small  |
+
+Combined: MULES could realistically come down to ~120 ms (4× rather than 10×
+the `step_vof!` baseline). Not done in this session — flagged for follow-up.
