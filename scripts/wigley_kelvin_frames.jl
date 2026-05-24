@@ -62,15 +62,28 @@ const prop_yc = hull_yc
 const prop_zc = Float32(H_w_c - T_c/2)
 const C_T     = parse(Float32, get(ENV, "WL_CT", "0.6"))
 const thrust  = 0.5f0 * π * R_prop^2 * U∞^2 * C_T
-const disk = ActuatorDisk(
-    center = SVector(prop_xc, prop_yc, prop_zc),
-    axis   = SVector(1f0, 0f0, 0f0),
-    R      = R_prop, w = 1.5f0,
-    thrust = thrust,
-)
+const HAS_SWIRL = get(ENV, "WL_SWIRL", "0") == "1"
+const torque  = parse(Float32, get(ENV, "WL_TORQUE_RATIO", "0.5")) * thrust * R_prop
+const disk = HAS_SWIRL ?
+    SwirlingDisk(
+        center = SVector(prop_xc, prop_yc, prop_zc),
+        axis   = SVector(1f0, 0f0, 0f0),
+        R      = R_prop, w = 1.5f0,
+        thrust = thrust, torque = torque,
+    ) :
+    ActuatorDisk(
+        center = SVector(prop_xc, prop_yc, prop_zc),
+        axis   = SVector(1f0, 0f0, 0f0),
+        R      = R_prop, w = 1.5f0,
+        thrust = thrust,
+    )
 disk_udf = HAS_PROP ? ((flow, t; kwargs...) -> disk(flow, t; kwargs...)) : nothing
 if HAS_PROP
-    @printf "  Propeller     = R=%.2f at (%.1f, %.1f, %.1f), C_T=%.2f, thrust=%.3f\n" R_prop prop_xc prop_yc prop_zc C_T thrust
+    if HAS_SWIRL
+        @printf "  Propeller     = R=%.2f at (%.1f, %.1f, %.1f), C_T=%.2f, thrust=%.3f, torque=%.3f (SWIRL)\n" R_prop prop_xc prop_yc prop_zc C_T thrust torque
+    else
+        @printf "  Propeller     = R=%.2f at (%.1f, %.1f, %.1f), C_T=%.2f, thrust=%.3f\n" R_prop prop_xc prop_yc prop_zc C_T thrust
+    end
 end
 
 function vof_pois_ctor(flow)
