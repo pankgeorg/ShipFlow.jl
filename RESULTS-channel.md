@@ -142,3 +142,29 @@ on dedicated compute is a clean follow-up; the smoke-level conclusion
 (WALE wired in, integrates with the channel driver, gives sensible
 ν_t and bulk numbers) is now confirmed.
 
+
+## Important update — channel395 result needs recalibration after Hook 1 fix
+
+After the WaterLily Hook 1 fix (commit `e4b8854`: store array ν as
+reference, not copy), the Smagorinsky model finally feeds eddy
+viscosity into the momentum equation as intended.
+
+Smoke re-run at N_HC=16, t=200:
+- Bulk ⟨u⟩ dropped from ~1.0 (with broken coupling) to **0.92**
+- ν_t,max ≈ 0.015 (was effectively 0 before)
+- u_τ_estimate dropped: Re_τ_estimate ≈ 124 (was higher under broken coupling)
+
+The fixed body force g_x = u_τ²/δ was calibrated assuming the OF-matched
+profile *with* the Smagorinsky contribution; but the broken coupling
+meant the WL run was actually quasi-DNS at Re_bulk=6675, with U_bar
+held near 1.0 only because of the artificial 20 % IC perturbation.
+
+**Implication:** the previous "WL u_max/Ubar = 1.18 matches OF 1.174
+within 0.5 %" claim is *coincidence*, not validation. With the fix,
+the same g_x undershoots U_bar by ~8 %. To recover the OF-matched
+profile we need to re-tune g_x upward to compensate for the now-active
+SGS dissipation.
+
+A proper Layer-2 channel395 validation post-fix is a clean follow-up.
+The architecture (Hook 1 + Smagorinsky + Flow + driver) is correct; the
+*calibration* of the driver body-force needs updating.
