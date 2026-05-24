@@ -143,14 +143,23 @@ for frame in 1:NFRAMES
     # Free surface contour at α=0.5
     contour!(ax, 1:size(α_slice,1), 1:size(α_slice,2), α_slice;
         levels=[0.5f0], color=:cyan, linewidth=2.5)
-    # Hull centerplane silhouette (parabolic profile at y=0): half-elliptic in x-z
-    # Wigley with y=0: S(x,z) = (1-(2x/L)²)(1-(z/T)²); the hull is where 0 < S
-    # On the centerplane: hull occupies |x-hull_xc| ≤ L/2, hull_zc-T ≤ z ≤ hull_zc.
-    hull_x_pts = collect(Float32, hull_xc - L_c/2 : 0.5f0 : hull_xc + L_c/2)
-    hull_z_low = [hull_zc - T_c * sqrt(max(0f0, 1f0 - (2f0*(x - hull_xc)/L_c)^2)) for x in hull_x_pts]
-    hull_z_top = fill(Float32(hull_zc), length(hull_x_pts))
-    band!(ax, hull_x_pts, hull_z_low, hull_z_top;
-        color=(:grey20, 0.65), strokecolor=:black, strokewidth=1)
+    # Wetted hull on the centerplane (y=0): the Wigley SDF reduces to the
+    # solid rectangle |x-hull_xc| ≤ L/2, hull_zc-T ≤ z ≤ hull_zc.
+    poly!(ax, [Point2f(hull_xc - L_c/2, hull_zc - T_c),
+               Point2f(hull_xc + L_c/2, hull_zc - T_c),
+               Point2f(hull_xc + L_c/2, hull_zc),
+               Point2f(hull_xc - L_c/2, hull_zc)];
+        color=(:grey20, 0.7), strokecolor=:black, strokewidth=1.5)
+    # Cosmetic above-water freeboard / deck (NOT in the simulation; the
+    # Wigley model is wetted-only, but a ship sketch helps reading).
+    fb = T_c / 3f0
+    poly!(ax, [Point2f(hull_xc - L_c*0.45, hull_zc),
+               Point2f(hull_xc + L_c*0.45, hull_zc),
+               Point2f(hull_xc + L_c*0.40, hull_zc + fb),
+               Point2f(hull_xc - L_c*0.40, hull_zc + fb)];
+        color=(:grey45, 0.45), strokecolor=:black, strokewidth=1.0)
+    # Still-water reference line
+    hlines!(ax, [hull_zc]; color=:grey50, linestyle=:dot, linewidth=1)
     # Disk marker
     if HAS_PROP
         scatter!(ax, [Point2f(prop_xc, prop_zc)];
