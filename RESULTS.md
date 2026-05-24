@@ -54,7 +54,7 @@ methodology, data, and caveats.
 1. **DTC hull SDF** — `TabulatedHull` infra ready (6.2 % round-trip error on Wigley sample). Need DTC offsets data.
 2. **Re=10⁶ self-propulsion** — would convert the Re-asymptote prediction (C_T≈2.24) into a calibratable result for ship-scale Cf.
 3. **Channel395 LES re-calibration** — re-tune driver `g_x` now that LES is actually live.
-4. **MULES α-redistribution** — drop damBreak mass loss from 5 % to the stated 0.1 % Phase-2 gate.
+4. **MULES α-redistribution** — `step_vof! mass_repair=true` already nails *global* mass conservation (5% → 0.000% on damBreak, front-RMS 4.1% → 3.7%). MULES would restore *local* spatial structure (Kelvin pattern resolution).
 5. **OpenFOAM cross-validation** — blocked on arm64 (no qemu-user-static).
 
 See [HANDOFF.md](../HANDOFF.md) at the foam root for the full resume snapshot and the per-package roadmaps.
