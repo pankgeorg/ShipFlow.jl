@@ -92,17 +92,23 @@ function run_one(CT)
     )
     disk_udf = (flow, t; kwargs...) -> disk(flow, t; kwargs...)
     drag_history = Float64[]
+    # Compute force only every FORCE_EVERY steps. pressure_force +
+    # viscous_force are ~70% of step cost, but for an averaged scan
+    # we only need a handful of samples over the last quarter.
+    force_every = max(1, NSTEPS_PER ÷ 25)
     for step in 1:NSTEPS_PER
         WaterLily.mom_step!(sim.flow, sim.pois;
-            udf = disk_udf, pois_tol = T_NUM(1e-8), pois_itmx = 100)
+            udf = disk_udf, pois_tol = T_NUM(1e-6), pois_itmx = 50)
         step_vof!(vof, sim; dt = sim.flow.Δt[end-1])
         update_νt!(turb, sim.flow.u, vof.ν)
-        Fp = WaterLily.pressure_force(sim)
-        Fv = WaterLily.viscous_force(sim)
-        push!(drag_history, -(Float64(Fp[1]) + Float64(Fv[1])))
+        if mod(step, force_every) == 0 || step > NSTEPS_PER * (1 - AVG_FRAC)
+            Fp = WaterLily.pressure_force(sim)
+            Fv = WaterLily.viscous_force(sim)
+            push!(drag_history, -(Float64(Fp[1]) + Float64(Fv[1])))
+        end
     end
-    # Average drag over the last AVG_FRAC of the run
-    N_avg = max(1, Int(round(NSTEPS_PER * AVG_FRAC)))
+    # Average drag over the last AVG_FRAC of the (sampled) run
+    N_avg = max(1, Int(round(length(drag_history) * AVG_FRAC)))
     drag_avg = sum(drag_history[end-N_avg+1:end]) / N_avg
     return thrust, drag_avg
 end
