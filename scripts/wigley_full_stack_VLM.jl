@@ -36,6 +36,7 @@ const NZ = parse(Int, get(ENV, "WL_NZ", "48"))
 const NSTEPS = parse(Int, get(ENV, "WL_NSTEPS", "100"))
 const FR = parse(Float32, get(ENV, "WL_FR", "0.40"))
 const δ_DEG  = parse(Float32, get(ENV, "WL_DELTA", "10"))
+const TWOWAY = get(ENV, "WL_TWOWAY", "0") == "1"
 
 const L_c = 36f0; const B_c = 8f0; const T_c = 5f0
 const ρ_w = 10f0; const ρ_a = 1f0
@@ -105,8 +106,22 @@ function vlm_udf(flow, t; kwargs...)
     smear_force!(flow.f, SVector(Float32(thrust), 0f0, 0f0),
                  SVector(prop_xc, prop_yc, prop_zc); ε=2.5f0)
     # Rudder: side force at the rudder centre (CL acts in body-z; we
-    # interpret as +y in ship-world via mapping).
-    r_rud = rudder_forces(rudder, deg2rad(δ_DEG), U∞)
+    # interpret as +y in ship-world via mapping). When TWOWAY=true,
+    # the rudder's `additional_velocity` callback samples flow.u
+    # at panel control points so VLM sees the actual local inflow
+    # (rotor race + hull wake). Subtract V∞ since VortexLattice
+    # treats `additional_velocity` as a perturbation on Vinf.
+    inflow_cb = if TWOWAY
+        u_sample = trilinear_inflow(flow.u)
+        (xv) -> let v = u_sample(SVector(Float32(xv[1] + rud_xc),
+                                         Float32(xv[2] + rud_yc),
+                                         Float32(xv[3] + rud_zc)))
+            SVector(v[1] - U∞, v[2], v[3])
+        end
+    else
+        nothing
+    end
+    r_rud = rudder_forces(rudder, deg2rad(δ_DEG), U∞; inflow=inflow_cb)
     side  = r_rud.CL * 0.5 * U∞^2 * (rudder.chord * rudder.span)
     drag  = r_rud.CD * 0.5 * U∞^2 * (rudder.chord * rudder.span)
     smear_force!(flow.f,
