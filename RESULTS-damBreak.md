@@ -33,10 +33,17 @@ Front X = x_front/L_column vs τ = t·√(2g/L_column).
 
 | metric                                          | N=64 RMS | N=64 max | N=128 RMS | N=128 max |
 |------------------------------------------------:|---------:|---------:|----------:|----------:|
-| WL ρ=10   vs Martin-Moyce 1952                  |  4.4 %   |  7.1 %   |   4.0 %   |  6.2 %    |
-| WL ρ=1000 vs Martin-Moyce 1952                  | 11.3 %   | 18.9 %   |  10.8 %   | 18.7 %    |
-| WL ρ=10   vs OpenFOAM (τ<1.7)                   |  6.3 %   |  8.4 %   |   6.3 %   |  8.9 %    |
-| WL ρ=1000 vs OpenFOAM (τ<1.7)                   |  0.7 %   |  0.8 %   |   2.9 %   |  3.6 %    |
+| WL ρ=10   vs Martin-Moyce 1952  (QUICK, original) |  4.4 %   |  7.1 %   |   4.0 %   |  6.2 %    |
+| WL ρ=10   vs Martin-Moyce 1952  (vanLeer)         |  3.8 %   |  6.6 %   |   —       |  —        |
+| WL ρ=10   vs Martin-Moyce 1952  (post-Hook-1-fix) |  4.1 %   |  7.0 %   |   —       |  —        |
+| WL ρ=1000 vs Martin-Moyce 1952                    | 11.3 %   | 18.9 %   |  10.8 %   | 18.7 %    |
+| WL ρ=10   vs OpenFOAM (τ<1.7)                     |  6.3 %   |  8.4 %   |   6.3 %   |  8.9 %    |
+| WL ρ=1000 vs OpenFOAM (τ<1.7)                     |  0.7 %   |  0.8 %   |   2.9 %   |  3.6 %    |
+
+The Hook-1 fix (commit e4b8854: store Flow.ν as a reference, not a
+copy) changed the damBreak RMS from 3.8 % to 4.1 % — Phase-2 gate
+still PASSES (10 % threshold). damBreak is high-Re (Re_water ≈ 5·10⁵)
+so ν-coupling is a minor factor; the front position is gravity-driven.
 
 The ρ=1000 vs Martin-Moyce error is **not** improved by grid refinement
 (11.3 → 10.8 % from N=64 → N=128). The systematic over-shoot of ~10-20 %
