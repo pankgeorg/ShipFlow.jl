@@ -86,8 +86,12 @@ t0 = time()
 for step in 1:NSTEPS
     WaterLily.mom_step!(sim.flow, sim.pois;
         pois_tol = 1f-6, pois_itmx = 50)
-    step_vof!(vof, sim; dt = sim.flow.Δt[end-1],
-        mass_repair = parse(Bool, get(ENV, "WL_MASS_REPAIR", "true")))
+    if parse(Bool, get(ENV, "WL_MULES", "false"))
+        step_vof_mules!(vof, sim; dt = sim.flow.Δt[end-1])
+    else
+        step_vof!(vof, sim; dt = sim.flow.Δt[end-1],
+            mass_repair = parse(Bool, get(ENV, "WL_MASS_REPAIR", "true")))
+    end
     if CW > 0
         update_νt!(turb, sim.flow.u, vof.ν)
     else
@@ -114,9 +118,18 @@ function eta_surface(α)
         if abs(x_hull) ≤ L_c/2 && abs(y_hull) ≤ B_c/2
             continue
         end
-        for k in nz:-1:1
-            if α[i, j, k] > 0.5f0
-                η[i, j] = Float32(k - 1.5) - H_w_c
+        # Also skip the inflow boundary band (artificial deep dip).
+        if i < hull_xc - L_c
+            continue
+        end
+        # Walk down from the top until α crosses 0.5; linearly
+        # interpolate within that cell for sub-cell precision.
+        for k in (nz-1):-1:2
+            if α[i, j, k] >= 0.5f0 && α[i, j, k+1] < 0.5f0
+                Δα = α[i, j, k] - α[i, j, k+1]
+                t  = abs(Δα) > 1f-9 ? (0.5f0 - α[i, j, k+1]) / Δα : 0.5f0
+                z  = Float32(k+1 - 1.5) - t   # interpolated interface z
+                η[i, j] = z - H_w_c
                 break
             end
         end
