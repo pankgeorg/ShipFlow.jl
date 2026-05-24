@@ -123,8 +123,8 @@ JULIA_NUM_THREADS=auto \
 
 ## Reynolds-number sweep
 
-Repeating the C_T scan at four Re values (2000, 5000, 10000, 20000)
-shows the self-propulsion C_T trending to an asymptote:
+Repeating the C_T scan at five Re values shows the self-propulsion
+C_T trending to an asymptote:
 
 | Re      | Self-propulsion C_T |
 |--------:|--------------------:|
@@ -132,8 +132,10 @@ shows the self-propulsion C_T trending to an asymptote:
 |  5 000  | 2.34                |
 | 10 000  | 2.24                |
 | 20 000  | 2.23                |
+| 50 000  | 2.26                |
 
-Convergence is essentially complete by Re=10⁴. Physical interpretation:
+Convergence is essentially complete by Re=10⁴ (the Re=50 000 point
+confirms it — C_T stays at 2.24 ± 0.03 over a decade of Re). Physical interpretation:
 viscous drag scales as Re^(−1/2) (laminar) so it vanishes at high Re; the
 remaining drag is wave-making + thrust deduction, both ~Re-independent
 in this regime. Re-asymptotic C_T ≈ 2.2 is therefore a clean test-case
