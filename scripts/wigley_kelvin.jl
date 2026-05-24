@@ -22,7 +22,7 @@ using WaterLily, VoF, ShipShapes
 using ShipShapes: StaticArrays
 using Turbulence
 const SVector = StaticArrays.SVector
-using Printf, CairoMakie
+using Printf, CairoMakie, Statistics
 
 const NX = parse(Int, get(ENV, "WL_NX", "256"))
 const NY = parse(Int, get(ENV, "WL_NY", "128"))
@@ -61,7 +61,8 @@ hull = ShipShapes.Wigley(; L = L_c, B = B_c, T = T_c, map = hull_map)
 
 vof = VoFFlow((NX, NY, NZ);
     α₀ = α₀, ρ_w = ρ_w, ρ_a = ρ_a, μ_w = μ_w_c, μ_a = μ_a_c, T = Float32)
-turb = WALE((NX, NY, NZ); Cw = 0.5f0, ν₀ = 0f0, T = Float32)
+const CW = parse(Float32, get(ENV, "WL_CW", "0.5"))
+turb = WALE((NX, NY, NZ); Cw = CW, ν₀ = 0f0, T = Float32)
 
 function vof_pois_ctor(flow)
     L = similar(flow.μ₀)
@@ -86,7 +87,12 @@ for step in 1:NSTEPS
     WaterLily.mom_step!(sim.flow, sim.pois;
         pois_tol = 1f-6, pois_itmx = 50)
     step_vof!(vof, sim; dt = sim.flow.Δt[end-1])
-    update_νt!(turb, sim.flow.u, vof.ν)
+    if CW > 0
+        update_νt!(turb, sim.flow.u, vof.ν)
+    else
+        # Cw=0 → tracking only the per-cell molecular ν from VoFFlow.
+        copyto!(turb.ν, vof.ν)
+    end
     if mod(step, 25) == 0
         u_max = maximum(abs, sim.flow.u)
         @info @sprintf("step=%3d  Δt=%.3f  |u|=%.3f  elapsed=%.1fs",
@@ -98,8 +104,15 @@ end
 # highest k with α>0.5 → η = z_surf - H_w_c.
 function eta_surface(α)
     nx, ny, nz = size(α)
-    η = zeros(Float32, nx, ny)
+    η = fill(NaN32, nx, ny)
     @inbounds for j in 1:ny, i in 1:nx
+        # Skip cells whose centre is inside the hull box (so the
+        # hull's footprint doesn't contaminate the surface map).
+        x_hull = Float32(i - 1.5) - hull_xc
+        y_hull = Float32(j - 1.5) - hull_yc
+        if abs(x_hull) ≤ L_c/2 && abs(y_hull) ≤ B_c/2
+            continue
+        end
         for k in nz:-1:1
             if α[i, j, k] > 0.5f0
                 η[i, j] = Float32(k - 1.5) - H_w_c
@@ -120,8 +133,13 @@ ax = Axis(fig[1, 1]; aspect = DataAspect(),
     xlabel="x (cells, +x = downstream)",
     ylabel="y (cells)",
     title=@sprintf("Free-surface elevation η — Wigley hull at Fr=%.2f, Re=%.0f, step=%d", Fr, Re, NSTEPS))
-ηmax = max(abs(minimum(η)), abs(maximum(η)))
-hm = heatmap!(ax, 1:NX, 1:NY, η; colormap=:RdBu, colorrange=(-ηmax, ηmax))
+# Clip the colour range so we see the wave train rather than the
+# extreme bow/stern outliers. Take the typical wake amplitude as
+# the 95th-percentile of |η|; clip outliers to the colormap edge.
+ηfinite = filter(isfinite, vec(η))
+ηmax = isempty(ηfinite) ? 1f0 : Float32(quantile(abs.(ηfinite), 0.95)) * 2
+hm = heatmap!(ax, 1:NX, 1:NY, η; colormap=:RdBu, colorrange=(-ηmax, ηmax),
+    nan_color=:grey80, highclip=:darkblue, lowclip=:darkred)
 Colorbar(fig[1, 2], hm, label="η (cells from waterline)")
 # Annotate hull location
 poly!(ax, [Point2f(hull_xc - L_c/2, hull_yc - B_c/2),
@@ -131,10 +149,13 @@ poly!(ax, [Point2f(hull_xc - L_c/2, hull_yc - B_c/2),
     color=:transparent, strokecolor=:black, strokewidth=1)
 # Kelvin half-angle reference lines (19.47° from hull stern)
 ang = deg2rad(19.47)
-xs = collect(0:NX-hull_xc-L_c/2)
-lines!(ax, xs .+ hull_xc + L_c/2, hull_yc .+ xs .* tan(ang); color=:lime, linestyle=:dash, linewidth=1.5)
-lines!(ax, xs .+ hull_xc + L_c/2, hull_yc .- xs .* tan(ang); color=:lime, linestyle=:dash, linewidth=1.5)
+x_stern = hull_xc + L_c/2
+xs = collect(Float32(0):Float32(NX) - x_stern)
+ys_plus  = hull_yc .+ xs .* Float32(tan(ang))
+ys_minus = hull_yc .- xs .* Float32(tan(ang))
+lines!(ax, xs .+ x_stern, ys_plus;  color=:lime, linestyle=:dash, linewidth=1.5)
+lines!(ax, xs .+ x_stern, ys_minus; color=:lime, linestyle=:dash, linewidth=1.5)
 
 save(joinpath(OUTDIR, "eta_top.png"), fig)
 println("\nWrote $(joinpath(OUTDIR, "eta_top.png"))")
-@printf "η range: [%.3f, %.3f] cells\n" minimum(η) maximum(η)
+ηfin = filter(isfinite, vec(η)); @printf("η range (excl hull): min=%.3f, max=%.3f, p1=%.3f, p99=%.3f, std=%.3f\n", minimum(ηfin), maximum(ηfin), quantile(ηfin, 0.01), quantile(ηfin, 0.99), Statistics.std(ηfin))
