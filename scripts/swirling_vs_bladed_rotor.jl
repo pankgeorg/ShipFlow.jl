@@ -113,8 +113,8 @@ disk = SwirlingDisk(center=SVector(prop_xc, prop_yc, prop_zc),
     thrust=Float32(thrust_T), torque=Float32(torque_T))
 udf_swirl = (flow, t; kw...) -> disk(flow, t; kw...)
 
-# BladedRotor udf (smear thrust at disk centre)
-function udf_bladed(flow, t; kw...)
+# BladedRotor udf — original single-point smear (centre)
+function udf_bladed_pointsmear(flow, t; kw...)
     r = rotor_forces(rotor, U∞, Ω)
     thrust = abs(r.CT * 0.5 * U∞^2 * π * R_prop^2)
     smear_force!(flow.f, SVector(Float32(thrust), 0f0, 0f0),
@@ -122,13 +122,28 @@ function udf_bladed(flow, t; kw...)
     return nothing
 end
 
-r_swirl = run_case("SWIRL  ", udf_swirl)
-r_blade = run_case("BLADED ", udf_bladed)
+# G4: BladedRotor udf — sectional smear (3 blades × 4 sections)
+function udf_bladed_sectional(flow, t; kw...)
+    r = rotor_forces(rotor, U∞, Ω)
+    thrust = abs(r.CT * 0.5 * U∞^2 * π * R_prop^2)
+    tq     = r.CQ * 0.5 * U∞^2 * π * R_prop^2 * R_prop
+    smear_blades!(flow.f, thrust, tq,
+                  SVector(prop_xc, prop_yc, prop_zc),
+                  SVector(1.0, 0.0, 0.0),
+                  R_prop, 0.2 * R_prop;
+                  N_blades=3, N_sections=4, ε=1.5)
+    return nothing
+end
+
+r_swirl  = run_case("SWIRL  ", udf_swirl)
+r_blade  = run_case("BLADED ", udf_bladed_pointsmear)
+r_blade2 = run_case("SECTNL ", udf_bladed_sectional)
 
 println()
-@printf "═══════════════════════════════════════════════════════════════\n"
-@printf "                          SWIRL          BLADED         Δ%%\n"
-@printf "  hull drag (mean ± σ)   %.3f±%.3f   %.3f±%.3f   %+.1f%%\n" r_swirl.drag_m r_swirl.drag_s r_blade.drag_m r_blade.drag_s (r_blade.drag_m/r_swirl.drag_m - 1)*100
-@printf "  wave RMS (post-stern)  %.4f         %.4f         %+.1f%%\n" r_swirl.η_rms r_blade.η_rms (r_blade.η_rms/r_swirl.η_rms - 1)*100
-@printf "  wave peak-peak         %.4f         %.4f         %+.1f%%\n" r_swirl.η_pp  r_blade.η_pp  (r_blade.η_pp/r_swirl.η_pp - 1)*100
-@printf "═══════════════════════════════════════════════════════════════\n"
+@printf "═══════════════════════════════════════════════════════════════════════════\n"
+@printf "                          SWIRL          BLADED (pt)     SECTNL\n"
+@printf "  hull drag (mean ± σ)   %.3f±%.3f   %.3f±%.3f   %.3f±%.3f\n" r_swirl.drag_m r_swirl.drag_s r_blade.drag_m r_blade.drag_s r_blade2.drag_m r_blade2.drag_s
+@printf "  Δ_drag vs SWIRL        —              %+.1f%%          %+.1f%%\n" (r_blade.drag_m/r_swirl.drag_m - 1)*100 (r_blade2.drag_m/r_swirl.drag_m - 1)*100
+@printf "  wave RMS               %.4f         %.4f         %.4f\n" r_swirl.η_rms r_blade.η_rms r_blade2.η_rms
+@printf "  wave peak-peak         %.4f         %.4f         %.4f\n" r_swirl.η_pp r_blade.η_pp r_blade2.η_pp
+@printf "═══════════════════════════════════════════════════════════════════════════\n"

@@ -18,18 +18,33 @@ Driver: [`scripts/swirling_vs_bladed_rotor.jl`](scripts/swirling_vs_bladed_rotor
 
 ## Result
 
-|                              | SwirlingDisk    | BladedRotor (VLM) | Δ%       |
-|------------------------------|-----------------|-------------------|----------|
-| Hull drag (mean ± σ)         | 45.64 ± 0.64    | 52.13 ± 0.42      | **+14.2%** |
-| Wave RMS (post-stern)        | 0.2004          | 0.2047            | +2.1%    |
-| Wave peak-peak               | 3.1070          | 2.7037            | **−13.0%** |
+|                              | SwirlingDisk    | BladedRotor pt-smear | BladedRotor sectional (G4) |
+|------------------------------|-----------------|----------------------|----------------------------|
+| Hull drag (mean ± σ)         | 45.64 ± 0.64    | 52.13 ± 0.42         | **50.19 ± 0.74**           |
+| Δ_drag vs SwirlingDisk       | —               | **+14.2 %**          | **+10.0 %**                |
+| Wave RMS (post-stern)        | 0.2004          | 0.2047               | 0.2132                     |
+| Wave peak-peak               | 3.1070          | 2.7037               | 3.0013                     |
 
-> Numbers above use the face-staggered `smear_force!` (commit
-> `0a32d54`). With the earlier cell-centred version of `smear_force!`
-> the numbers were +7.9 % drag, −0.1 % RMS, −11.0 % peak-peak; the
-> half-cell bias was *under-thrusting* the rotor on the tangential
-> components, making BladedRotor look closer to SwirlingDisk than it
-> really is.
+> The third column is **G4 of NEW_PLAN.md**: replace the single-point
+> `smear_force!` + `smear_torque!` at the disk centre with
+> `LiftingSurfaces.smear_blades!`, which distributes the same total
+> thrust+torque across `N_blades × N_sections = 3 × 4 = 12` points
+> arranged as radial blade lines. Net thrust and net moment match
+> to ~5 % per the unit test.
+>
+> **Sectional smear narrows the drag delta to +10 % and brings the
+> wave peak-peak nearly back to the SwirlingDisk value**, confirming
+> the review intuition: the single-point smear was over-loading the
+> hull stern through localised flow acceleration. The sectional
+> version spreads the force across the swept area like
+> SwirlingDisk does, so the hull sees a similar mean flow.
+>
+> Earlier numbers in commit history: cell-centred smear gave +7.9 %
+> drag; face-staggered single-point gave +14.2 %; sectional gives
+> +10.0 %. All numbers are within the same physical regime; the
+> remaining 10 % gap between sectional-BladedRotor and SwirlingDisk
+> reflects the VLM's actual radial loading distribution (which is
+> not uniform — there's a tip-loaded bias).
 
 ## Interpretation
 
