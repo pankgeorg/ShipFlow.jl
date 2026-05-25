@@ -195,3 +195,41 @@ scatter!(ax, [Point2f(rud_xc, rud_yc)];
 
 save(out, fig)
 @printf "\nWrote %s\n" out
+
+# Also a side-view: u_x on the y = hull_yc x-z slice, water-only.
+j_slice = round(Int, hull_yc + 1.5)
+NX_α, NY_α, NZ_α = size(vof.α)
+ux_slice = Array{Float32}(undef, NX_α, NZ_α)
+@inbounds for i in 1:NX_α, k in 1:NZ_α
+    αv = vof.α[i, j_slice, k]
+    if αv < 0.5
+        ux_slice[i, k] = NaN32
+    else
+        ux_slice[i, k] = 0.5f0 * (sim.flow.u[i, j_slice, k, 1] +
+                                  sim.flow.u[min(i+1, NX_α), j_slice, k, 1])
+    end
+end
+
+out2 = joinpath(OUTDIR, "headline_side.png")
+fig2 = Figure(size=(1500, 600))
+ax2 = Axis(fig2[1,1]; aspect=DataAspect(),
+    xlabel="x (cells)", ylabel="z (cells)",
+    title=@sprintf("Side view (y=%.1f): u_x/U∞,  δ=%.1f°, %d steps", hull_yc, δ_DEG, NSTEPS))
+hm2 = heatmap!(ax2, 1:size(ux_slice,1), 1:size(ux_slice,2), ux_slice;
+    colormap=:roma, colorrange=(0f0, 2f0),
+    nan_color=RGBAf(0.85, 0.92, 1.0, 1.0))
+Colorbar(fig2[1,2], hm2, label="u_x / U∞")
+# Hull silhouette on centerplane (rectangle below z=hull_zc)
+poly!(ax2, [Point2f(hull_xc - L_c/2, hull_zc - T_c),
+            Point2f(hull_xc + L_c/2, hull_zc - T_c),
+            Point2f(hull_xc + L_c/2, hull_zc),
+            Point2f(hull_xc - L_c/2, hull_zc)];
+    color=(:grey20, 0.7), strokecolor=:black, strokewidth=1.2)
+scatter!(ax2, [Point2f(prop_xc, prop_zc)];
+    color=:orange, marker=:cross, markersize=16)
+lines!(ax2, [rud_xc, rud_xc],
+        [rud_zc - rudder.span/2, rud_zc + rudder.span/2];
+    color=:lime, linewidth=3)
+hlines!(ax2, [hull_zc]; color=:grey50, linestyle=:dot, linewidth=1)
+save(out2, fig2)
+@printf "Wrote %s\n" out2
