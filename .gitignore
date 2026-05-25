@@ -19,3 +19,16 @@ runs/*/[1-9][0-9]*
 runs/*/[1-9]
 runs/cylinder_waterlily
 runs/damBreak/core.*
+
+# Per-script run dirs from the long-loop session deliverables.
+# Each script seeds its own subdirectory; binary outputs and frames
+# are regenerable from the scripts.
+runs/bladed_rotor
+runs/rudder
+runs/swirling_disk
+runs/vlm_full
+runs/wigley_kelvin/frames
+runs/wigley_kelvin/*.gif
+runs/wigley_kelvin/*.png
+runs/wigley_sideview
+runs/wigley_yz_swirl
