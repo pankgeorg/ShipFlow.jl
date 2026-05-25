@@ -100,11 +100,18 @@ sim = WaterLily.Simulation((NX, NY, NZ),
 
 # Combined udf — both rotor and rudder per step.
 function vlm_udf(flow, t; kwargs...)
-    # Rotor: forward thrust at the rotor centre.
+    # Rotor: axial thrust at the disk centre + torque as a tangential
+    # ring around the perimeter (smear_torque! deposits 8 point forces
+    # summing to zero net force but Q net moment about +x).
     r_rot = rotor_forces(rotor, U∞, Ω)
     thrust = abs(r_rot.CT * 0.5 * U∞^2 * π * R_prop^2)
+    torque = r_rot.CQ * 0.5 * U∞^2 * π * R_prop^2 * R_prop
     smear_force!(flow.f, SVector(Float32(thrust), 0f0, 0f0),
                  SVector(prop_xc, prop_yc, prop_zc); ε=2.5f0)
+    smear_torque!(flow.f, Float32(torque),
+                  SVector(prop_xc, prop_yc, prop_zc),
+                  SVector(1f0, 0f0, 0f0), Float32(R_prop * 0.7);
+                  N=8, ε=2.0f0)
     # Rudder: side force at the rudder centre (CL acts in body-z; we
     # interpret as +y in ship-world via mapping). When TWOWAY=true,
     # the rudder's `additional_velocity` callback samples flow.u
