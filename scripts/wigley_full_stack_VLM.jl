@@ -42,7 +42,7 @@ const L_c = 36f0; const B_c = 8f0; const T_c = 5f0
 const ρ_w = 10f0; const ρ_a = 1f0
 const U∞ = 1f0
 const G_c = U∞^2 / (FR^2 * L_c)
-const Re = 5000f0
+const Re = parse(Float32, get(ENV, "WL_RE", "5000"))
 const ν_w_c = U∞ * L_c / Re
 const μ_w_c = ρ_w * ν_w_c
 const μ_a_c = ρ_a * 18 * ν_w_c
