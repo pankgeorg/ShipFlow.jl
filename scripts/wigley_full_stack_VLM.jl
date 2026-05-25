@@ -20,12 +20,13 @@ Pkg.develop([
     Pkg.PackageSpec(path=joinpath(@__DIR__, "..", "..", "WaterLily")),
     Pkg.PackageSpec(path=joinpath(@__DIR__, "..", "..", "VoF.jl")),
     Pkg.PackageSpec(path=joinpath(@__DIR__, "..", "..", "ShipShapes.jl")),
+    Pkg.PackageSpec(path=joinpath(@__DIR__, "..", "..", "Turbulence.jl")),
     Pkg.PackageSpec(path=joinpath(@__DIR__, "..", "..", "LiftingSurfaces.jl")),
 ]; io=devnull)
 Pkg.add(["CairoMakie", "VortexLattice"]; io=devnull)
 println("packages added"); flush(stdout)
 
-using WaterLily, VoF, ShipShapes, LiftingSurfaces
+using WaterLily, VoF, ShipShapes, Turbulence, LiftingSurfaces
 using ShipShapes: StaticArrays
 const SVector = StaticArrays.SVector
 using Printf, CairoMakie, Statistics
@@ -78,6 +79,10 @@ flush(stdout)
 
 vof = VoFFlow((NX, NY, NZ);
     α₀ = α₀, ρ_w = ρ_w, ρ_a = ρ_a, μ_w = μ_w_c, μ_a = μ_a_c, T = Float32)
+# G3: WALE LES on top of the per-cell molecular ν from VoF. The Flow
+# uses `turb.ν`; `update_νt!` recomputes ν every step from vof.ν.
+const HAS_LES = get(ENV, "WL_LES", "1") == "1"
+turb = WALE((NX, NY, NZ); Cw = 0.5f0, ν₀ = 0f0)
 rotor  = BladedRotor(; N_blades=3, R=R_prop, R_hub=0.5,
     chord=(1.0, 0.5), twist=(deg2rad(35.0), deg2rad(15.0)), ns=12, nc=4)
 rudder = Rudder(; chord=4.0, span=5.0, ns=12, nc=6)
@@ -92,7 +97,7 @@ end
 
 sim = WaterLily.Simulation((NX, NY, NZ),
     (U∞, 0f0, 0f0), L_c;
-    T = Float32, ν = vof.ν,
+    T = Float32, ν = HAS_LES ? turb.ν : vof.ν,
     g = (i, x, t) -> i == 3 ? -G_c : 0f0,
     Δt = 0.25f0, body = hull, ϵ = 1, perdir = (2,), exitBC = true,
     pois_ctor = vof_pois_ctor, U = U∞,
@@ -163,6 +168,7 @@ t0 = time()
 for step in 1:NSTEPS
     WaterLily.mom_step!(sim.flow, sim.pois; udf=vlm_udf, pois_tol=1f-6, pois_itmx=50)
     step_vof_mules!(vof, sim; dt=sim.flow.Δt[end-1], perdir=(2,))
+    HAS_LES && update_νt!(turb, sim.flow.u, vof.ν)
     if step % 20 == 0
         u_max = maximum(abs, sim.flow.u)
         @info @sprintf("step=%3d  |u|=%.3f  elapsed=%.1fs", step, u_max, time()-t0)
