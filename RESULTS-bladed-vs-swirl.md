@@ -20,9 +20,16 @@ Driver: [`scripts/swirling_vs_bladed_rotor.jl`](scripts/swirling_vs_bladed_rotor
 
 |                              | SwirlingDisk    | BladedRotor (VLM) | Δ%       |
 |------------------------------|-----------------|-------------------|----------|
-| Hull drag (mean ± σ)         | 45.64 ± 0.64    | 49.22 ± 0.77      | **+7.9%** |
-| Wave RMS (post-stern)        | 0.2004          | 0.2001            | −0.1%    |
-| Wave peak-peak               | 3.1070          | 2.7640            | **−11.0%** |
+| Hull drag (mean ± σ)         | 45.64 ± 0.64    | 52.13 ± 0.42      | **+14.2%** |
+| Wave RMS (post-stern)        | 0.2004          | 0.2047            | +2.1%    |
+| Wave peak-peak               | 3.1070          | 2.7037            | **−13.0%** |
+
+> Numbers above use the face-staggered `smear_force!` (commit
+> `0a32d54`). With the earlier cell-centred version of `smear_force!`
+> the numbers were +7.9 % drag, −0.1 % RMS, −11.0 % peak-peak; the
+> half-cell bias was *under-thrusting* the rotor on the tangential
+> components, making BladedRotor look closer to SwirlingDisk than it
+> really is.
 
 ## Interpretation
 
