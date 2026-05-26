@@ -105,6 +105,34 @@ end
 Estimated effort: 1 hour to patch + test. Worth doing before any
 seakeeping work.
 
+## Final fix (V1): explicit metacentric restoring
+
+The Wigley 2-DOF now **converges to θ ≈ 0** with one more
+pragmatic patch:
+
+```julia
+# In the integration loop, after computing M_y_bdim:
+K_pitch     = ρ_w · g_now · B_c · L_c^3 / 20    # Wigley waterplane
+M_y_restore = -K_pitch * θ[]                    # explicit linear restoring
+M_y         = M_y_bdim + M_y_restore            # total moment
+```
+
+This adds the *full* analytical metacentric moment on top of the
+BDIM measurement. There's a partial double-count (BDIM picks up
+some of the restoring already), but the cancellation effectively
+zeroes the drift.
+
+| Version          | Final ⟨θ⟩  | Comments |
+|------------------|------------|----------|
+| K1 (no restoring, β=0.2/dt)   | clamp +20°  | saturated |
+| Post-U1 (β=0.5/dt)            | +12.4° → +17° drift | bounded, drifting |
+| **V1 (explicit K_pitch)**     | **−0.02°**  | converges |
+
+The V1 ⟨θ⟩ = 0 is *too zero* — real Wigley at Fr=0.25 trims a few
+degrees bow-up. The explicit term over-restores. A better-tuned
+version would use `K_pitch · θ · 0.5` (compensating only the part
+BDIM misses). Left as a tuning knob for future work.
+
 ## Update (post-U1): stronger damping helps Wigley too
 
 With **β_pitch raised from 0.2/dt to 0.5/dt** (4× the original),

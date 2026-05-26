@@ -103,7 +103,15 @@ for step in 1:NSTEPS
     F_grav = -M_ship * g_now
     F_net  = F_buoy + F_grav
     # Pitch moment about y (component 2). Negate for fluid→body.
-    M_y = -Mp[2]
+    M_y_bdim = -Mp[2]
+    # V1: explicit analytical metacentric restoring on top of the
+    # BDIM-measured moment. BDIM under-captures the waterplane-
+    # intersection moment at our grid resolution, leaving the wave-
+    # forcing component without an in-kind restoring response.
+    # For the Wigley waterplane (parabolic), I_wp = B·L³/20.
+    K_pitch = ρ_w * g_now * B_c * L_c^3 / 20
+    M_y_restore = -K_pitch * θ[]
+    M_y = M_y_bdim + M_y_restore
 
     # Artificial damping: needs to be strong because Wigley's
     # parabolic waterplane gives weaker K_pitch (B·L³/20) than the
