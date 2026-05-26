@@ -80,6 +80,16 @@ end
 
 const _NUMBER_REGEX = r"[-+]?\d+(?:\.\d*)?(?:[eE][-+]?\d+)?|[-+]?\.\d+(?:[eE][-+]?\d+)?"
 
+"""
+    _parse_internal_vector_list(raw) -> (n, vectors)
+
+Parse the `internalField` block of a `volVectorField` OpenFOAM file
+out of the file's raw string contents. Supports both the
+`nonuniform List<vector> N ( ... )` form and the `uniform (vx vy vz)`
+form. Boundary patches and the header dictionary are ignored — only
+the internal cells are returned. The number of vectors is returned
+alongside the parsed values for cross-checking against `polyMesh`.
+"""
 function _parse_internal_vector_list(raw)
     # Locate internalField, then the nonuniform List<vector> N ( ... ) block.
     # Strategy: skip the header up to the opening paren that follows N,
@@ -110,6 +120,14 @@ function _parse_internal_vector_list(raw)
     return (n, vectors)
 end
 
+"""
+    _parse_internal_scalar_list(raw) -> (n, scalars)
+
+Scalar counterpart of `_parse_internal_vector_list`: parse a
+`volScalarField` internalField out of the file's raw string contents,
+returning `(n, scalars)`. Supports both `nonuniform List` and
+`uniform <value>` forms.
+"""
 function _parse_internal_scalar_list(raw)
     m = match(r"internalField\s+nonuniform\s+List<[^>]+>\s*(\d+)\s*\("s, raw)
     if m === nothing
