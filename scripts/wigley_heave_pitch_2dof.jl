@@ -105,13 +105,12 @@ for step in 1:NSTEPS
     # Pitch moment about y (component 2). Negate for fluid→body.
     M_y = -Mp[2]
 
-    # Artificial damping: at this Re/Fr the wave-induced pitch
-    # moment is destabilising on a faired Wigley, so without a real
-    # viscous model the pitch DOF spins up. β=0.2/dt gives a
-    # damping time-scale ≈ 5 steps, plenty of damping but not so
-    # much that the motion is suppressed entirely.
-    β_pitch = 0.2 / sim.flow.Δt[end-1]
-    β_heave = 0.05 / sim.flow.Δt[end-1]
+    # Artificial damping: needs to be strong because Wigley's
+    # parabolic waterplane gives weaker K_pitch (B·L³/20) than the
+    # Containership (B·L³/12). Per U1, β=0.2/dt was enough for
+    # Containership but Wigley needs β=0.5/dt to converge.
+    β_pitch = 0.5 / sim.flow.Δt[end-1]
+    β_heave = 0.1 / sim.flow.Δt[end-1]
     z_ddot = F_net / M_ship - β_heave * zdot_h[]
     θ_ddot = M_y / I_pitch - β_pitch * θdot[]
     zdot_h[] += z_ddot * sim.flow.Δt[end-1]
