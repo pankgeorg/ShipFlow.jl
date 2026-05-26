@@ -79,10 +79,36 @@ because the Containership SDF has a *sharp* top edge at body z = 0
 — as the hull moves, the BDIM kernel jaggily picks up and releases
 volume.
 
-A proper fix needs an above-waterline deck on the Containership
-(similar to L1's Wigley deck extension), and likely also a
-smoothing radius at the bow/stern corners. ~30 lines of
-`containership_sdf` work; not done in this session.
+## Fix (T1): add a deck to the Containership SDF
+
+Extended `containership_sdf` with a `deck_h` parameter (committed in
+ShipShapes.jl alongside the L1 Wigley deck). The deck interior uses
+the true minimum-distance SDF (`−min(d_side, d_top, d_kel)`), same
+form as the corrected Wigley deck. ShipShapes test count: 42 (no
+regressions).
+
+**Result with deck_h = T/2 + strong damping (β=0.5/dt):**
+
+| Quantity                         | Value     |
+|----------------------------------|-----------|
+| ⟨z_h⟩ (last 25 % avg)            | **−0.21 cells** |
+| ż_rms (last 25 %)                | **0.002** (settled) |
+| F_hyz at equilibrium             | **4805**  |
+| M·g                              | 4800      |
+| **Bias factor with deck**        | **~1.00** (was 0.37 without deck) |
+| Residual F_net                   | 0.1 % of weight |
+
+**The deck SDF restores the analytical-Archimedes match.** The
+Containership now floats at the expected equilibrium z_h ≈ 0 with
+the correct sinkage signature. Strong damping is needed because
+the natural heave frequency is high enough that explicit Euler
+overshoots; a Newmark-β integrator would replace this with
+unconditional stability.
+
+The session's takeaway: **for any hull with corners or sharp top
+edges, the BDIM bias is large enough to break 6-DOF integration
+unless the SDF includes an above-waterline body**. L1 fixed the
+Wigley; T1 fixed the Containership.
 
 ## See also
 

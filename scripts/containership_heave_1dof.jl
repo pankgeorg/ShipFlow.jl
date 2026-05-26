@@ -55,7 +55,7 @@ const M_analytical = ρ_w * V0
 # ~63 % (sharp corners). To make the hull float at z_h=0 we set
 # `M_ship = bias · M_analytical` where bias is measured by a
 # hydrostatic pre-pass below.
-const BIAS_FACTOR = parse(Float64, get(ENV, "WL_BIAS", "0.37"))
+const BIAS_FACTOR = parse(Float64, get(ENV, "WL_BIAS", "1.0"))
 const M_ship = BIAS_FACTOR * M_analytical
 
 # Mutable heave state.
@@ -63,7 +63,9 @@ z_h    = Ref(0.0)
 zdot_h = Ref(0.0)
 
 hull_map = (x, t) -> SVector(x[1] - hull_xc, x[2] - hull_yc, x[3] - (hull_zc0 + z_h[]))
-hull = ShipShapes.Containership(; L = L_c, B = B_c, T = T_c, map = hull_map)
+hull = ShipShapes.Containership(; L = L_c, B = B_c, T = T_c,
+    deck_h = T_c / 2,        # T1: deck for proper Archimedes at z_h ≠ 0
+    map = hull_map)
 α₀(_i, x_cell) = (x_cell[3] ≤ H_w_c) ? 1.0 : 0.0
 
 @printf "=== R1: heave 1-DOF (Containership) ===\n"
@@ -118,9 +120,15 @@ for step in 1:NSTEPS
     F_grav = -M_ship * g_now           # negative
     F_net  = F_buoy + F_grav
     F_hyz  = F_buoy                    # keep variable for the print below
-    z_ddot = F_net / M_ship
+    # Strong damping: the Containership SDF has sharp transitions
+    # that make explicit Euler unstable at the natural heave
+    # frequency. β=0.5/dt makes the system overdamped but stable.
+    β_heave = 0.5 / sim.flow.Δt[end-1]
+    z_ddot = F_net / M_ship - β_heave * zdot_h[]
     zdot_h[] += z_ddot * sim.flow.Δt[end-1]
     z_h[]    += zdot_h[] * sim.flow.Δt[end-1]
+    # Hard clamp so even if damping fails the body stays in domain.
+    z_h[] = clamp(z_h[], -T_c, T_c)
 
     push!(z_hist, z_h[])
     push!(zdot_hist, zdot_h[])
