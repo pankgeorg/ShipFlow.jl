@@ -105,11 +105,32 @@ end
 Estimated effort: 1 hour to patch + test. Worth doing before any
 seakeeping work.
 
+## Update (post-U1): stronger damping helps Wigley too
+
+With **β_pitch raised from 0.2/dt to 0.5/dt** (4× the original),
+the Wigley 2-DOF no longer saturates within 240 steps:
+
+| Damping β_pitch | Final θ (last 25 %) | Comments |
+|-----------------|---------------------|----------|
+| 0.2/dt (K1 / L1) | clamp +20.0°       | saturated |
+| 0.5/dt (post-U1) | **+12.4°**         | bounded, slowly drifting |
+
+Even with the stronger damping, θ slowly creeps up because the
+BDIM-measured M_y is a *forcing* moment that isn't fully balanced
+by metacentric restoring at this grid resolution.
+
+**On the Containership the same script converges** (U1,
+`RESULTS-heave-pitch-containership.md`). The difference is K_pitch:
+the parallel-midbody waterplane has B·L³/12 vs Wigley's parabolic
+B·L³/20 — 67 % stiffer restoring, enough to overpower the BDIM
+forcing moment.
+
 ## See also
 
 - `RESULTS-heave-1dof.md` — J1: stable 1-DOF heave (works).
+- `RESULTS-heave-pitch-containership.md` — U1: Containership 2-DOF
+  that converges (companion to this Wigley case).
 - `scripts/wigley_heave_pitch_2dof.jl` — driver.
 - `runs/heave_pitch_2dof/heave_pitch.png` — z, θ, F_buoy, M_y plot.
 - `reference_waterlily_conventions.md` (memory) — the
-  `pressure_force`/`pressure_moment` sign convention that we got
-  right on the first try this time.
+  `pressure_force`/`pressure_moment` sign convention.
