@@ -70,8 +70,24 @@ For comparison, the Wigley hydrostatic check (L3) gave F_hyz /
   had a finer grid or larger hull-to-cell ratio. The Containership's
   37 % is at the same grid; refining would help both.
 
+## Follow-up: bias calibration alone is insufficient
+
+Tried setting `M_ship = 0.37 · M_analytical` (i.e. M matches the
+BDIM-measured Archimedes at static). Result: hull still diverges
+within 90 steps. The bias factor at z_h ≠ 0 is highly nonlinear
+because the Containership SDF has a *sharp* top edge at body z = 0
+— as the hull moves, the BDIM kernel jaggily picks up and releases
+volume.
+
+A proper fix needs an above-waterline deck on the Containership
+(similar to L1's Wigley deck extension), and likely also a
+smoothing radius at the bow/stern corners. ~30 lines of
+`containership_sdf` work; not done in this session.
+
 ## See also
 
 - `RESULTS-heave-1dof.md` (J1) — Wigley counterpart, stable.
 - `RESULTS-hydrostatic-check.md` (L3) — Wigley BDIM bias (12 % off).
+- `RESULTS-wigley-deck-sdf.md` (L1) — Wigley deck fix that this
+  Containership case also needs.
 - `runs/heave_1dof_containership/heave.png` — divergent z_h trajectory.

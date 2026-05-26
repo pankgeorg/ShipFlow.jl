@@ -45,14 +45,18 @@ const μ_a_c = ρ_a * 18 * ν_w_c
 const H_w_c = NZ/2
 const hull_xc = NX/5; const hull_yc = NY/2; const hull_zc0 = H_w_c
 
-# Containership submerged volume as a function of the world-frame
-# heave z_h (positive = hull rises). With par_frac=0.5 the hull
-# planform is parabolic-tapered at the ends and constant in the
-# midbody. We don't need the analytical V_submerged(z_h) — the L3
-# / J1 fix uses only the BDIM-measured F_hyz from
-# pressure_force(sim). Keep V₀ for the initial M_ship calculation.
-const V0 = 0.75 * L_c * B_c * T_c        # par_frac=0.5 → Cb=0.75
-const M_ship = ρ_w * V0   # neutral-buoyancy mass
+# Containership submerged volume at z_h = 0 (par_frac=0.5 ⇒ Cb=0.75).
+# We do NOT use the analytical formula in the EOM — instead we use
+# the BDIM-measured F_hyz directly. But we need V₀ to set M_ship.
+const V0 = 0.75 * L_c * B_c * T_c
+const M_analytical = ρ_w * V0
+# Per R1 (RESULTS-heave-containership.md), the BDIM Archimedes
+# under-measures the analytical buoyancy for the Containership by
+# ~63 % (sharp corners). To make the hull float at z_h=0 we set
+# `M_ship = bias · M_analytical` where bias is measured by a
+# hydrostatic pre-pass below.
+const BIAS_FACTOR = parse(Float64, get(ENV, "WL_BIAS", "0.37"))
+const M_ship = BIAS_FACTOR * M_analytical
 
 # Mutable heave state.
 z_h    = Ref(0.0)
