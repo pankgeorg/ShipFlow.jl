@@ -65,10 +65,14 @@ finer confirmation grid (see below).
   Ubar = 0.1335, averaged t ∈ [500, 1000]
 - Sampled to `runs/channel395_of_profile/ux_profile.csv` (49 stations)
 
-### Confirmation run (in progress)
-A fuller WALE run at N_HC=24 / 96×48×48 / longer averaging is staged in
-`runs/channel395_waterlily_wale_full/` to confirm the small-grid result
-is not grid-limited. This file will be updated with that number.
+### Confirmation run
+A second WALE run at N_HC=24 (48 y-cells, 64×48×32, t_end=90) in
+`runs/channel395_waterlily_wale_full/` confirms the small-grid result is
+not a fluke: centreline u/Ubar = **1.207** (vs 1.202 on the N_HC=16
+run), bulk RMS vs OF = **0.044** (still inside the ≤0.05 gate; looser
+than the 0.030 of the longer-averaged `wale_test` run because this
+confirmation used a shorter averaging window). The two WALE runs agree
+on the centreline to within 0.4 %, so the headline is grid-robust.
 
 ## Caveats
 
