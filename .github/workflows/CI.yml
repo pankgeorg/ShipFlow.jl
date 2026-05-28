@@ -1,0 +1,47 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Package-loading smoke test - Julia ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.10'
+          - '1.11'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+      - uses: julia-actions/cache@v2
+      # ShipFlow's [sources] block expects sister packages at ../<name>.
+      # In CI we install them from GitHub instead.
+      - name: Install sister packages from GitHub
+        run: |
+          julia --project=. -e '
+            using Pkg
+            Pkg.activate(; temp=true)
+            Pkg.develop([
+              Pkg.PackageSpec(url="https://github.com/pankgeorg/WaterLily.jl"),
+              Pkg.PackageSpec(url="https://github.com/pankgeorg/VoF.jl"),
+              Pkg.PackageSpec(url="https://github.com/pankgeorg/Turbulence.jl"),
+              Pkg.PackageSpec(url="https://github.com/pankgeorg/ShipShapes.jl"),
+              Pkg.PackageSpec(url="https://github.com/pankgeorg/Propellers.jl"),
+              Pkg.PackageSpec(url="https://github.com/pankgeorg/LiftingSurfaces.jl"),
+            ])
+            Pkg.add(["StaticArrays", "VortexLattice"])
+            using WaterLily, VoF, Turbulence, ShipShapes, Propellers, LiftingSurfaces
+            println("All ShipFlow dependencies loaded successfully")
+          '
