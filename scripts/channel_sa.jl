@@ -26,6 +26,9 @@ const N_HC   = parse(Int,     get(ENV, "WL_N_HC",  "64"))   # cells per half-hei
 const N_X    = parse(Int,     get(ENV, "N_X",      "32"))   # streamwise (periodic)
 const RE_TAU = parse(Float64, get(ENV, "RE_TAU",   "395"))
 const NSTEPS = parse(Int,     get(ENV, "WL_NSTEPS","6000"))
+const WALLFN = parse(Bool,    get(ENV, "WL_WALLFN","false"))  # BDIM wall function
+const BAND_LO = parse(Float64, get(ENV, "WL_BAND_LO", "1.0"))
+const BAND_HI = parse(Float64, get(ENV, "WL_BAND_HI", "3.0"))
 const U_TAU  = 1.0                                          # work in wall units
 const T_NUM  = Float64
 
@@ -63,7 +66,7 @@ sim = Simulation((N_X, N_Y), (0.0, 0.0), DELTA;
 
 # ── time loop: SA substep first (sets ν), then momentum ──
 for step in 1:NSTEPS
-    step_sa!(sa, sim.flow.u, sim.flow.Δt[end])
+    step_sa!(sa, sim.flow.u, sim.flow.Δt[end]; wallfn=WALLFN, band=(BAND_LO, BAND_HI))
     sim_step!(sim; remeasure=false)
     if step % 500 == 0
         umax = maximum(@view sim.flow.u[:, :, 1])
