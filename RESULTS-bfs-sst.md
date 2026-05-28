@@ -34,15 +34,29 @@ so it is numerical/BC-driven, not a physical high-Re effect:
 3. **CFL / explicit coupling.** The segregated explicit SST substep at
    the corner may need a tighter Δt than the momentum CFL allows.
 
-## Blocker for the OF cross-check
+## OF cross-check — unblocked (use the arm64-native image)
 
-The OpenFOAM `pitzDaily`/backstep comparison is **blocked on this host**:
-the `openfoam/openfoam11-paraview510` image is linux/amd64 and this
-machine is arm64 (`exec format error`). Fresh OF runs cannot execute
-here; the existing `runs/channel395` OF data predates this constraint.
-The backstep must therefore validate against the **published
-Driver–Seegmiller experiment** (x_r/H ≈ 6.0–6.3), not a fresh OF run —
-or be run on an amd64 machine.
+Earlier this looked blocked: the locally-cached
+`openfoam/openfoam11-paraview510` image is linux/amd64 and this host is
+arm64 (`exec format error`). That was the *wrong image* — it's the
+Foundation `.org` build, amd64-only.
+
+The harness-prescribed image (`HARNESS.md`) is
+**`opencfd/openfoam-default:2406`**, which is **multi-arch with a native
+arm64 build** (`linuxARM64GccDPInt32Opt`). Verified here: `simpleFoam` /
+`pimpleFoam` run natively, and the `pitzDaily` backstep tutorial
+(`$FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily`) runs end-to-end
+(blockMesh + simpleFoam) with no emulation.
+
+```
+docker run --rm --platform linux/arm64 opencfd/openfoam-default:2406 ...
+```
+
+Image digest at time of writing:
+`sha256:dd5aa20630a55722663bf83ba0cb74870cba130081303e32e3865007fa2aa35a`.
+
+So the OF `pitzDaily` kΩSST cross-check **can run on this host** after
+the WaterLily BFS harness is stabilised; no amd64 machine needed.
 
 ## Next steps (tracked)
 
