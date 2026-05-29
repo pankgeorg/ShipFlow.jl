@@ -53,6 +53,29 @@ cause and fix:
 - The sharp re-entrant corner and explicit segregated coupling did *not*
   need extra treatment once the inlet was fixed.
 
+## Grid-convergence diagnostic (resolution ruled out)
+
+| grid (cells/H) | WaterLily SST x_r/H |
+|---------------:|--------------------:|
+| H = 20         | 9.90                |
+| H = 40         | **9.90** (identical)|
+| OF kΩSST (ref) | 8.35                |
+
+Doubling the wall-normal/streamwise resolution (H=20→40, 4× cells)
+leaves x_r/H unchanged at 9.90. **The over-prediction is grid-converged**
+— it is not a resolution artifact. Since WaterLily and OpenFOAM run the
+*same* kΩSST closure, the gap is also not a closure-constant issue. It is
+therefore attributable to **numerics + the immersed-boundary substrate**:
+
+- **Advection diffusion.** WaterLily advects momentum (and the k, ω
+  scalars via `transport!`) with the QUICK limiter; numerical diffusion
+  of the separating shear layer lengthens the recirculation bubble.
+- **Explicit lagged coupling.** ν_t is computed segregated and lagged
+  one substep; OpenFOAM's SIMPLE couples it implicitly.
+- **BDIM separated shear layer.** The immersed step corner / smeared
+  wall diffuse the shear layer differently from a body-fitted mesh —
+  the separated-flow analogue of the channel's near-wall BDIM error.
+
 ## Why WaterLily SST over-predicts (~19 %)
 
 - **BDIM wall on the separated shear layer.** The smeared wall and the
