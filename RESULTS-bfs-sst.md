@@ -55,26 +55,31 @@ cause and fix:
 
 ## Grid-convergence diagnostic (resolution ruled out)
 
-| grid (cells/H) | WaterLily SST x_r/H |
-|---------------:|--------------------:|
-| H = 20         | 9.90                |
-| H = 40         | **9.90** (identical)|
-| OF kΩSST (ref) | 8.35                |
+| WaterLily SST run        | x_r/H |
+|--------------------------|------:|
+| H = 20, QUICK advection  | 9.90  |
+| H = 40, QUICK advection  | 9.90  |
+| H = 20, vanLeer advection| 9.90  |
+| OF kΩSST (ref)           | 8.35  |
 
-Doubling the wall-normal/streamwise resolution (H=20→40, 4× cells)
-leaves x_r/H unchanged at 9.90. **The over-prediction is grid-converged**
-— it is not a resolution artifact. Since WaterLily and OpenFOAM run the
-*same* kΩSST closure, the gap is also not a closure-constant issue. It is
-therefore attributable to **numerics + the immersed-boundary substrate**:
+x_r/H = 9.90 is **invariant to both grid (H=20→40, 4× cells) and
+advection limiter (QUICK ↔ vanLeer)**. The over-prediction is robustly
+grid- *and* scheme-converged, so it is neither a resolution artifact nor
+numerical-diffusion in the advection (QUICK is 3rd-order, vanLeer 2nd-
+order TVD — vanLeer is not actually less diffusive in the smooth shear
+layer, hence no change). Since WaterLily and OpenFOAM run the *same*
+kΩSST closure, it is also not a closure-constant issue.
 
-- **Advection diffusion.** WaterLily advects momentum (and the k, ω
-  scalars via `transport!`) with the QUICK limiter; numerical diffusion
-  of the separating shear layer lengthens the recirculation bubble.
-- **Explicit lagged coupling.** ν_t is computed segregated and lagged
-  one substep; OpenFOAM's SIMPLE couples it implicitly.
-- **BDIM separated shear layer.** The immersed step corner / smeared
-  wall diffuse the shear layer differently from a body-fitted mesh —
-  the separated-flow analogue of the channel's near-wall BDIM error.
+What remains is **the immersed-boundary substrate itself**: BDIM smears
+the sharp step corner and represents the separating shear layer
+differently from a body-fitted mesh, and the explicit segregated ν_t
+coupling differs from OF's implicit SIMPLE. This is the separated-flow
+analogue of the channel's structural near-wall BDIM error (5–8 %), and
+it is robust — the cleanest interpretation is that **x_r/H ≈ 9.9 is the
+converged BDIM-SST answer for this case**, ~19 % long vs body-fitted OF
+and ~25–40 % long vs the experimental ~7. Closing it would require a
+sharper immersed-corner / shear-layer treatment, not a model or scheme
+change.
 
 ## Why WaterLily SST over-predicts (~19 %)
 

@@ -54,11 +54,16 @@ inflow_u(y) = T_NUM(U_IN) * ramp(y)
 uBC = (i, x, t) -> i == 1 ? inflow_u(x[2]) : zero(T_NUM)
 uλ  = (i, x)    -> i == 1 ? inflow_u(x[2]) : zero(T_NUM)
 
+# Advection limiter (WL_LAMBDA=quick|vanLeer|cds) for k/ω + momentum.
+const LAM = let s = lowercase(get(ENV, "WL_LAMBDA", "quick"))
+    s == "vanleer" ? WaterLily.vanLeer : s == "cds" ? WaterLily.cds : WaterLily.quick
+end
+
 if MODEL == "sst"
     k_in = 1.5 * (0.05*U_IN)^2
     ω_in = sqrt(k_in) / (0.09^0.25 * 0.07*H)
     model = KOmegaSST((N_X, N_Y), body; ν=NU, k∞=k_in, ω∞=ω_in, T=T_NUM)
-    stepturb!(u, dt) = step_sst!(model, u, dt)                 # native ω-wall
+    stepturb!(u, dt) = step_sst!(model, u, dt; λ=LAM)          # native ω-wall
 else
     model = SpalartAllmaras((N_X, N_Y), body; ν=NU, ν̃∞=3NU, T=T_NUM)
     stepturb!(u, dt) = step_sa!(model, u, dt; wallfn=true, band=(T_NUM(1), T_NUM(4)))
@@ -81,7 +86,7 @@ end
 
 for step in 1:NSTEPS
     stepturb!(sim.flow.u, sim.flow.Δt[end])
-    sim_step!(sim; remeasure=false)
+    sim_step!(sim; remeasure=false, λ=LAM)
     if step % 2000 == 0
         um = maximum(abs, sim.flow.u); xr = reattachment(sim.flow.u)
         @printf("  step %5d  |u|max=%.3f  νt/ν_max=%.1f  x_r/H=%s\n",
