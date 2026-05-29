@@ -52,7 +52,8 @@ sim = Simulation((N_X, N_Y), (0.0, 0.0), DELTA;
     U=U_TAU, uλ=uλ, ν=sst.ν, body=body, g=g, perdir=(1,), T=T_NUM)
 
 for step in 1:NSTEPS
-    step_sst!(sst, sim.flow.u, sim.flow.Δt[end]; wallfn=WALLFN, band=(BAND_LO, BAND_HI))
+    step_sst!(sst, sim.flow.u, sim.flow.Δt[end]; wallfn=WALLFN, band=(BAND_LO, BAND_HI),
+              production=Symbol(get(ENV, "WL_PRODUCTION", "standard")))
     sim_step!(sim; remeasure=false)
     if step % 2500 == 0
         umax = maximum(@view sim.flow.u[:, :, 1])

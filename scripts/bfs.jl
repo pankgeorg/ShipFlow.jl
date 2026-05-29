@@ -58,12 +58,14 @@ uλ  = (i, x)    -> i == 1 ? inflow_u(x[2]) : zero(T_NUM)
 const LAM = let s = lowercase(get(ENV, "WL_LAMBDA", "quick"))
     s == "vanleer" ? WaterLily.vanLeer : s == "cds" ? WaterLily.cds : WaterLily.quick
 end
+# SST production form (WL_PRODUCTION=standard|kato_launder).
+const PROD = Symbol(get(ENV, "WL_PRODUCTION", "standard"))
 
 if MODEL == "sst"
     k_in = 1.5 * (0.05*U_IN)^2
     ω_in = sqrt(k_in) / (0.09^0.25 * 0.07*H)
     model = KOmegaSST((N_X, N_Y), body; ν=NU, k∞=k_in, ω∞=ω_in, T=T_NUM)
-    stepturb!(u, dt) = step_sst!(model, u, dt; λ=LAM)          # native ω-wall
+    stepturb!(u, dt) = step_sst!(model, u, dt; λ=LAM, production=PROD)  # native ω-wall
 else
     model = SpalartAllmaras((N_X, N_Y), body; ν=NU, ν̃∞=3NU, T=T_NUM)
     stepturb!(u, dt) = step_sa!(model, u, dt; wallfn=true, band=(T_NUM(1), T_NUM(4)))
