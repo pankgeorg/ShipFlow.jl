@@ -165,7 +165,7 @@ function build()
         DELTA;
         U    = Float32(U_BAR),
         uλ   = uλ,
-        ν    = model.ν,
+        ν = Turbulence.viscosity(model),
         body = body,
         g    = g,
         perdir = (1, 3),

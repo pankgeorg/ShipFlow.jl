@@ -44,7 +44,7 @@ using ShipFlow.Harness
         WaterLily.MultiLevelPoisson(flow.p, L, flow.σ; perdir = (2,))
     end
     sim = WaterLily.Simulation((NX, NY, NZ), (U∞, 0.0, 0.0), Float64(L_c);
-        T = Float64, ν = turb.ν,
+        T = Float64, ν = Turbulence.viscosity(turb),  # qualified: VoF also exports `viscosity`
         g = (i, x, t) -> i == 3 ? -G_c : 0.0,
         Δt = 0.25, body = hull, ϵ = 1, perdir = (2,), exitBC = true,
         pois_ctor = pois_ctor, U = U∞)

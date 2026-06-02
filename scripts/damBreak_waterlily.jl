@@ -102,7 +102,7 @@ L0 = copy(vof.L)
 
 flow = WaterLily.Flow((NX, NY), (T_NUM(0), T_NUM(0));
     T  = T_NUM,
-    ν  = vof.ν,                       # Hook 1: per-cell ν
+    ν = VoF.viscosity(vof),                       # Hook 1: per-cell ν
     g  = (i, x, t) -> i == 2 ? T_NUM(-G_c) : T_NUM(0),
     Δt = 0.5,                         # initial Δt_cell — bootstrapped by CFL
 )

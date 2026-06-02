@@ -109,7 +109,7 @@ end
 sim = WaterLily.Simulation((NX, NY, NZ),
     (T_NUM(U∞), T_NUM(0), T_NUM(0)), L_c;
     T = T_NUM,
-    ν = turb.ν,                                # combined molecular + eddy
+    ν = Turbulence.viscosity(turb),                                # combined molecular + eddy
     g = (i, x, t) -> i == 3 ? T_NUM(-G_c) : T_NUM(0),
     Δt = 0.25,
     body = hull,

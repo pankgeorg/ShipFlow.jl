@@ -53,7 +53,7 @@ function run_one(Fr)
     end
     sim = WaterLily.Simulation((NX, NY, NZ),
         (T_NUM(U∞), T_NUM(0), T_NUM(0)), Float64(L_c);
-        T = T_NUM, ν = turb.ν,
+        T = T_NUM, ν = Turbulence.viscosity(turb),
         g = (i, x, t) -> i == 3 ? T_NUM(-G_c) : T_NUM(0),
         Δt = 0.25, body = hull, ϵ = 1, perdir = (2,), exitBC = true,
         pois_ctor = vof_pois_ctor, U = T_NUM(U∞),

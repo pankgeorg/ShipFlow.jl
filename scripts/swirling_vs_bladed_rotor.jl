@@ -70,7 +70,7 @@ function run_case(label, udf)
         WaterLily.MultiLevelPoisson(flow.p, L, flow.σ; perdir=(2,))
     end
     sim = WaterLily.Simulation((NX, NY, NZ), (U∞, 0f0, 0f0), L_c;
-        T = Float32, ν = vof.ν,
+        T = Float32, ν = VoF.viscosity(vof),
         g = (i, x, t) -> i == 3 ? -G_c : 0f0,
         Δt = 0.25f0, body = hull, ϵ = 1, perdir = (2,), exitBC = true,
         pois_ctor = vof_pois_ctor, U = U∞)

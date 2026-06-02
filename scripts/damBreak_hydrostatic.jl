@@ -48,7 +48,7 @@ function run_one(rho_ratio; nsteps = 30, tol = 1e-10, itmx = 400)
     )
     flow = WaterLily.Flow((N, N), (T_NUM(0), T_NUM(0));
         T = T_NUM,
-        ν = vof.ν,
+        ν = VoF.viscosity(vof),
         g = (i, x, t) -> i == 2 ? T_NUM(-G_c) : T_NUM(0),
         Δt = 0.5,
     )

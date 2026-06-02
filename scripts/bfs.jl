@@ -72,7 +72,7 @@ else
 end
 
 sim = Simulation((N_X, N_Y), uBC, Float64(H);
-    U=U_IN, uλ=uλ, ν=model.ν, body=body, exitBC=true, T=T_NUM)
+    U=U_IN, uλ=uλ, ν = Turbulence.viscosity(model), body=body, exitBC=true, T=T_NUM)
 
 # Reattachment length = the rightmost near-wall flow reversal of the
 # main bubble: the largest x (within the bubble window) where the first

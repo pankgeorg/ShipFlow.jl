@@ -75,7 +75,7 @@ function vof_pois_ctor(flow)
     WaterLily.MultiLevelPoisson(flow.p, L, flow.σ)
 end
 sim = WaterLily.Simulation((N, N), (T_NUM(0), T_NUM(0)), R_c;
-    T=T_NUM, ν=vof.ν,
+    T=T_NUM, ν = VoF.viscosity(vof),
     g=(i,x,t)-> i==2 ? T_NUM(-G_c) : T_NUM(0),
     Δt=0.5, body=body, ϵ=1, pois_ctor=vof_pois_ctor, U=T_NUM(1.0))
 
