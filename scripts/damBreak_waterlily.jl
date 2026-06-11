@@ -106,7 +106,13 @@ flow = WaterLily.Flow((NX, NY), (T_NUM(0), T_NUM(0));
     g  = (i, x, t) -> i == 2 ? T_NUM(-G_c) : T_NUM(0),
     Δt = 0.5,                         # initial Δt_cell — bootstrapped by CFL
 )
-pois = WaterLily.MultiLevelPoisson(flow.p, L0, flow.σ)
+# Solver control via struct defaults (WaterLily foam-integration / PR
+# stacked on #245): tol/itmx set once here apply to every solve. The old
+# `pois_tol=`/`pois_itmx=` mom_step! kwargs no longer exist — passing
+# them would be silently swallowed and leave the loose 1e-4 default,
+# which under-converges at the ρ-jump (see RESULTS-damBreak.md note 2).
+pois = WaterLily.MultiLevelPoisson(flow.p, L0, flow.σ;
+    tol = T_NUM(POIS_TOL), itmx = POIS_ITMX)
 sim = (flow = flow, pois = pois)
 
 # --- Diagnostics ------------------------------------------------------------
@@ -159,10 +165,7 @@ function run!(sim, vof)
     while t_phys < T_END
         sim.flow.Δt[end] = min(sim.flow.Δt[end], Δt_grav_cap)
 
-        WaterLily.mom_step!(sim.flow, sim.pois;
-            pois_tol = T_NUM(POIS_TOL),
-            pois_itmx = POIS_ITMX,
-        )
+        WaterLily.mom_step!(sim.flow, sim.pois)
         dt_cell = sim.flow.Δt[end-1]
         dt_phys = dt_cell * ΔX / U_ref
         if parse(Bool, get(ENV, "WL_MULES", "false"))

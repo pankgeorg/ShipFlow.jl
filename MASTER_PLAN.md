@@ -92,6 +92,14 @@ proceed. If not, decision: switch to a pressure decomposition
 (`p_rgh`) or stop and fix the multigrid coarsening at the interface
 before adding propellers.
 
+> **GATE PASSED — 2026-06-11.** damBreak ρ=1000, N=128, 5 s through the
+> `density_coefficient!` Poisson path: mass m/m₀ = 1.0000 (both
+> clamp+mass_repair and MULES), Poisson at ≈2 V-cycles/projection
+> throughout. No `p_rgh` needed. Caveat discovered en route: MULES
+> without an interface-compression flux homogenizes α over long runs —
+> use `step_vof!`+`mass_repair` until the `cAlpha`-style term lands.
+> Details: [RESULTS-damBreak.md](./RESULTS-damBreak.md) §Phase-2 gate.
+
 ### Phase 3 — propulsion (weeks 19–24)
 
 - Finalize Propellers.jl actuator-disk + actuator-line.

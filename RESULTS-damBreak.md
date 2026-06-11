@@ -137,13 +137,55 @@ paper, as tabulated in Hirt & Nichols 1981 Fig. 11 and Stansby et al
    Acceptable for a front-position validation, but for the Phase-2 sloshing
    tests we'll need MULES-style redistribution. Filed as a follow-up.
 
+## Phase-2 gate closure — 2026-06-11
+
+Gate text (MASTER_PLAN Phase 2): *"Does the Poisson solver still
+converge at ρ-ratio 1000? Does mass drift stay under 0.1% over 5
+seconds?"* Two 5-second runs at ρ=1000, N=128, through the **new
+`density_coefficient!` Poisson path** (WaterLily `foam-integration` +
+VoF commit adopting it) and the Poisson **struct tol/itmx defaults**
+(tol=1e-8, itmx=200 set once at construction; the old `pois_tol`
+mom_step! kwarg is gone — see script comment):
+
+| config | steps | Poisson | mass m/m₀ | interface at t=5 s |
+|---|---|---|---|---|
+| `step_vof!` + clamp + mass_repair | 12,475 | converges throughout (niter≈2 late) | **1.0000** | sharp — α∈[0,1], front tracked all run |
+| `step_vof_mules!` (Zalesak FCT)   | 26,775 | converges throughout (niter≈2 late) | **1.0000** | **fully diffused** — α∈[0.058, 0.137] ≈ homogenized to mean 0.125 |
+
+**Verdict: gate PASSES** (both criteria, both configs) — via the
+clamp+mass_repair configuration for any result where the interface
+matters.
+
+**New finding — MULES diffuses without interface compression.** Our
+MULES is bounded (Zalesak envelope) and exactly mass-conserving, but
+has no mechanism to *re-steepen* the interface: over 26k sloshing
+steps the per-step smearing compounds until α homogenizes. interFoam
+avoids this with the compressive counter-gradient flux
+(`cAlpha·|u_r|·α(1-α)` along the interface normal) — that term is the
+missing piece, filed as follow-up #2'. Ironically the simple clamp in
+`step_vof!` acts as an interface sharpener, so clamp+repair is the
+recommended config for long runs until compression lands.
+
+Front position vs Martin–Moyce at ρ=1000 N=128 (τ≤3 window): repair
+RMS 12.7%, MULES 15.3% — consistent with the previously documented
+~11% systematic overshoot (numerical air drag too weak + clamp
+concentration), not a regression from the new Poisson path.
+
+CSVs: `runs/damBreak_waterlily/front_vs_t_rho1000_N128_{repair,mules}_gate.csv`.
+
+Same-day perf fix: `step_vof_mules!`'s λ_HO limiter kwarg now forces
+specialization (`λ_HO::FH`) — it was dynamically dispatching in the
+face-flux loop (566 KiB/call → 63 KiB at N=64², the rest being KA
+kernel-launch overhead; 64 B-class on the SIMD backend).
+
 ## Outstanding follow-ups
 
 | # | Item                                                                | Priority |
 |---|----------------------------------------------------------------------|----------|
-| 1 | N=128 confirmation that ρ=1000 case converges to ρ=10 trend         | high     |
-| 2 | MULES α-redistribution to keep mass loss < 0.1 % (Phase-2 gate text)  | high     |
-| 3 | Add a BDIM obstacle to WaterLily to compare full OF reference        | medium   |
+| 1 | ~~N=128 confirmation that ρ=1000 case converges to ρ=10 trend~~     | ✅ done (table above + gate runs) |
+| 2 | ~~MULES α-redistribution to keep mass loss < 0.1 %~~                | ✅ done — but see #2' |
+| 2′| **Interface-compression flux for MULES** (interFoam `cAlpha` term) — without it MULES homogenizes over long runs | high |
+| 3 | Add a BDIM obstacle to WaterLily to compare full OF reference        | medium — now unblocked: `density_coefficient!` folds measured μ₀ |
 | 4 | Sloshing benchmark (closed-tank harmonic) — Hysing 2009 set 1        | medium   |
 | 5 | Surface tension (CSF) — not required for hull resistance but for     | low      |
 |   | propeller cavitation it is                                          |          |
