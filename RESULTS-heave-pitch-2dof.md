@@ -153,6 +153,46 @@ the parallel-midbody waterplane has B·L³/12 vs Wigley's parabolic
 B·L³/20 — 67 % stiffer restoring, enough to overpower the BDIM
 forcing moment.
 
+## Newmark-β integrator — 2026-06-11 (the "proper integrator" follow-up)
+
+`scripts/wigley_heave_pitch_newmark.jl` replaces the explicit Euler +
+heavy ad-hoc damping with Newmark average-acceleration (β=¼, γ=½),
+added mass (M+A33, I+A55, Ca=1 slender-body defaults), damping as a
+critical fraction ζ=0.2, and the analytic hydrostatic stiffness in two
+roles: implicitly on the per-step *increment* (stabilizes the staggered
+fluid–body loop) and — necessarily, see below — absolutely as
+`−K_θ·θ` on the pitch moment.
+
+**Result (320 steps, release at step 80): converged.**
+⟨z⟩ = −0.43 cells (the BDIM sinkage bias, as in J1/V1),
+⟨θ⟩ = −0.32° with a *bounded* ±2.2° wave-induced oscillation —
+no clamp ever touched, at ζ=0.2 instead of the explicit script's
+effectively-overdamped `β=0.5/dt`.
+
+What the failure ladder established on the way:
+
+1. **K, C must use full gravity, not the ramped value** — otherwise the
+   startup steps have neither damping nor stiffness and the transient
+   pumps velocity (diverged step 39).
+2. **The body must be held until the impulsive-start transient passes**
+   (release ≈ ramp + 20 steps), the numerical model-basin release.
+   A lightly-damped body that is free during the startup splash
+   resonates with the staggered coupling and blows up (diverged step
+   44–45 with either MULES variant). V1 survived this only by being
+   overdamped.
+3. **Heave needs no absolute analytic restoring** — BDIM captures the
+   heave stiffness well enough (stable immediately after release).
+4. **Pitch does**: the measured BDIM moment slope at Fr=0.25 is net
+   *destabilizing* (Munk moment + under-captured waterplane
+   restoring) — slow divergence over ~70 steps regardless of
+   integrator damping. V1's explicit `−K_pitch·θ` is therefore
+   load-bearing physics, not a tuning hack; here it composes with the
+   increment-implicit term and the result oscillates instead of
+   saturating.
+
+Plot: `runs/heave_pitch_newmark/newmark.png`. Knobs: `WL_ZETA`,
+`WL_CA33`, `WL_CA55`, `WL_RELEASE`, `WL_NSTEPS`.
+
 ## See also
 
 - `RESULTS-heave-1dof.md` — J1: stable 1-DOF heave (works).
