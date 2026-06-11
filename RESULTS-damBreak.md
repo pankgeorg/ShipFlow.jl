@@ -227,7 +227,7 @@ CSVs: `runs/damBreak_waterlily/front_vs_t_rho1000_N128_mules_calpha{1,05,025}.cs
 | 1 | ~~N=128 confirmation that ρ=1000 case converges to ρ=10 trend~~     | ✅ done (table above + gate runs) |
 | 2 | ~~MULES α-redistribution to keep mass loss < 0.1 %~~                | ✅ done — but see #2' |
 | 2′| ~~Interface-compression flux for MULES~~ (interFoam `cAlpha` term)  | ✅ implemented + swept 2026-06-11 — see study above; gentle-case validation is the remaining piece |
-| 2″| **Gentle-case MULES+c_α validation** (harmonic sloshing or Kelvin slice) — sharpness benefit without the wall-slam instability regime | medium |
+| 2″| ~~Gentle-case MULES+c_α validation~~ | ✅ done 2026-06-11 — **VALIDATED**, see [RESULTS-sloshing.md](./RESULTS-sloshing.md): stable 5.5 periods @ ρ=1000, period +0.5% vs linear theory, mass 1.3e-3 %, interface 2.4× sharper than alternatives |
 | 3 | Add a BDIM obstacle to WaterLily to compare full OF reference        | medium — now unblocked: `density_coefficient!` folds measured μ₀ |
 | 4 | Sloshing benchmark (closed-tank harmonic) — Hysing 2009 set 1        | medium   |
 | 5 | Surface tension (CSF) — not required for hull resistance but for     | low      |
