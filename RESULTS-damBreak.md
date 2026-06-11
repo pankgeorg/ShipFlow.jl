@@ -178,13 +178,56 @@ specialization (`λ_HO::FH`) — it was dynamically dispatching in the
 face-flux loop (566 KiB/call → 63 KiB at N=64², the rest being KA
 kernel-launch overhead; 64 B-class on the SIMD backend).
 
+## Interface-compression study — 2026-06-11 (follow-up #2′)
+
+VoF.jl gained the interFoam-style compression flux
+(`step_vof_mules!(...; c_α)`, default 1): `Φc = c_α·|u_f|·n̂·α(1-α)`
+added to the high-order flux before Zalesak limiting. Sweep on the
+gate config (ρ=1000, N=128, 5 s target):
+
+| config | survives | interface | mass | front RMS vs MM (τ≤3) |
+|---|---|---|---|---|
+| MULES c_α=0    | **5.0 s ✓** | homogenized (α_max 0.137) | 1.0000 | 15.3 % |
+| MULES c_α=0.25 | 2.49 s ✗ | half-diffused at death (α_max 0.489) | 1.0000 | — |
+| MULES c_α=0.5  | 0.80 s ✗ | sharp until death | 1.0000 | 14.9 % |
+| MULES c_α=1    | 0.53 s ✗ | sharp until death | 1.0000 | 14.7 % |
+| `step_vof!` clamp+repair | **5.0 s ✓** | sharp (clamp-sharpened) | 1.0000 | **12.7 %** |
+
+Two findings:
+
+1. **Compression works as advertised on the interface** — sharpness is
+   retained, mass stays exact, bounds hold (the Zalesak envelope
+   limits it correctly; unit-tested in VoF.jl).
+2. **A sharp algebraic interface at ρ-ratio 1000 destabilizes the
+   momentum coupling during wall-slam.** Survival time tracks interface
+   diffusion almost monotonically (sharper → earlier blow-up; the
+   fully-diffused c_α=0 run is the only MULES survivor). The mechanism
+   is the known algebraic-VoF weakness: we advect `u`, not `ρu`, so a
+   sharp 1000:1 jump plus the thin-air-film singularity at the wall
+   injects unbounded spurious momentum. Fixing it properly means
+   mass-momentum-consistent advection (the InterfaceAdvection.jl
+   approach), which is out of scope for VoF.jl by design.
+3. Compression does **not** improve the damBreak front metric (14.7–14.9 %
+   vs 15.3 % plain; clamp+repair 12.7 %) — the ρ=1000 overshoot is
+   air-drag-dominated, not sharpness-dominated.
+
+**Recommendation matrix:** violent flows (slamming, breaking) →
+`step_vof!` + `mass_repair`. Gentle free-surface flows (ship
+wave-making, sloshing below breaking) → MULES + c_α, pending a
+gentle-case validation (Kelvin pattern / harmonic sloshing) where
+sharpness retention is the payoff and the instability regime is never
+entered.
+
+CSVs: `runs/damBreak_waterlily/front_vs_t_rho1000_N128_mules_calpha{1,05,025}.csv`.
+
 ## Outstanding follow-ups
 
 | # | Item                                                                | Priority |
 |---|----------------------------------------------------------------------|----------|
 | 1 | ~~N=128 confirmation that ρ=1000 case converges to ρ=10 trend~~     | ✅ done (table above + gate runs) |
 | 2 | ~~MULES α-redistribution to keep mass loss < 0.1 %~~                | ✅ done — but see #2' |
-| 2′| **Interface-compression flux for MULES** (interFoam `cAlpha` term) — without it MULES homogenizes over long runs | high |
+| 2′| ~~Interface-compression flux for MULES~~ (interFoam `cAlpha` term)  | ✅ implemented + swept 2026-06-11 — see study above; gentle-case validation is the remaining piece |
+| 2″| **Gentle-case MULES+c_α validation** (harmonic sloshing or Kelvin slice) — sharpness benefit without the wall-slam instability regime | medium |
 | 3 | Add a BDIM obstacle to WaterLily to compare full OF reference        | medium — now unblocked: `density_coefficient!` folds measured μ₀ |
 | 4 | Sloshing benchmark (closed-tank harmonic) — Hysing 2009 set 1        | medium   |
 | 5 | Surface tension (CSF) — not required for hull resistance but for     | low      |

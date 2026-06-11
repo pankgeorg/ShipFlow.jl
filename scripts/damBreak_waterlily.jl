@@ -169,7 +169,13 @@ function run!(sim, vof)
         dt_cell = sim.flow.Δt[end-1]
         dt_phys = dt_cell * ΔX / U_ref
         if parse(Bool, get(ENV, "WL_MULES", "false"))
-            step_vof_mules!(vof, sim; dt = dt_cell)
+            # WL_CALPHA: interface-compression strength (interFoam cAlpha).
+            # 1 keeps the interface sharpest but at ρ-ratio 1000 the sharp
+            # interface destabilizes the (non-mass-consistent) momentum
+            # coupling during violent wall impact; sub-unity trades a little
+            # smearing for stability.
+            step_vof_mules!(vof, sim; dt = dt_cell,
+                c_α = parse(Float64, get(ENV, "WL_CALPHA", "1")))
         else
             step_vof!(vof, sim; dt = dt_cell,
                 mass_repair = parse(Bool, get(ENV, "WL_MASS_REPAIR", "false")))
