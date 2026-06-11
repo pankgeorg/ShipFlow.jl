@@ -26,25 +26,31 @@ MULES + c_α=1 advection, Brackbill CSF via the `udf` hook
   circle reads 0.947–0.955), so most of the deficit is real
   deformation.
 
-## Why the shape is off (analysis)
+## Why the shape is off (analysis — updated after the HF experiment)
 
-1. **Smoothed-CSF curvature under-restores the rim.** κ from
-   `-∇·(∇α_s/|∇α_s|)` on a Jacobi-smoothed colour function
-   underestimates magnitude exactly where curvature concentrates (the
-   flattening bubble's rim), so the force that should arrest
-   deformation weakens as deformation grows. The standard fix is
-   height-function curvature (Popinet 2009) — second-order, and what
-   geometric-VoF codes (e.g. InterfaceAdvection.jl) use.
-2. **Tangential viscous stress jump is unmodeled.** Our momentum
-   equation is kinematic with ν = μ(α)/ρ(α); for this case ν is then
-   *uniform* (10/1000 = 1/100), so the 10× dynamic-viscosity contrast
-   never enters — and the missing `∇·(μ∇uᵀ)` transpose term is exactly
-   the piece that carries the tangential stress balance at an
-   interface with a μ jump.
+Two hypotheses were tested:
 
-Both are known limitations of the algebraic one-fluid formulation
-documented in the VoF-vs-InterfaceAdvection comparison; this benchmark
-quantifies their cost: ~0.3 of circularity at Eo=10.
+1. ~~**Smoothed-CSF curvature under-restores the rim.**~~ **Ruled out
+   2026-06-11.** VoF.jl gained Popinet-style height-function curvature
+   (`curvature!(vof, Val(:height))` — on a fractional disc its
+   face-sampled κ is within 1.9 % with ~30 % lower scatter than the
+   smoothed estimate). Re-running N=128 with `WL_KAPPA=height` gives
+   **c_min = 0.6052 vs 0.6047 smoothed** — unchanged. The κ estimator
+   is not the binding error.
+2. **Tangential viscous stress jump is unmodeled — now the isolated
+   cause.** Our momentum equation is kinematic with ν = μ(α)/ρ(α); for
+   this case ν is then *uniform* (10/1000 = 1/100), so the 10×
+   dynamic-viscosity contrast never enters — and the missing
+   `∇·(μ∇uᵀ)` transpose term is exactly the piece that carries the
+   tangential stress balance at an interface with a μ jump. The
+   bubble's internal circulation is over-driven, and it over-flattens
+   regardless of how accurately the capillary force is evaluated.
+
+Fixing (2) means a conservative variable-μ stress formulation — the
+mass-momentum-consistent territory of InterfaceAdvection.jl, out of
+VoF.jl's algebraic scope by design. The benchmark quantifies the cost
+of that design choice: ~0.3 of circularity at Eo=10, with rise
+dynamics unaffected.
 
 ## Implication for ship scales
 

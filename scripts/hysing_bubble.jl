@@ -87,7 +87,10 @@ flow = WaterLily.Flow((NX, NY), (T_NUM(0), T_NUM(0));
 pois = WaterLily.MultiLevelPoisson(flow.p, L0, flow.σ;
     tol = T_NUM(1e-8), itmx = 200)
 sim = (flow = flow, pois = pois)
-st! = VoF.surface_tension(vof, T_NUM(σ_c); passes = PASSES)
+# WL_KAPPA: curvature estimator — "smoothed" (Brackbill) or "height"
+# (Popinet height-function with smoothed fallback).
+const KAPPA = Symbol(get(ENV, "WL_KAPPA", "smoothed"))
+st! = VoF.surface_tension(vof, T_NUM(σ_c); passes = PASSES, method = KAPPA)
 
 # --- Bubble metrics (bubble fraction B = 1-α) ----------------------------------
 function metrics(vof, flow)
