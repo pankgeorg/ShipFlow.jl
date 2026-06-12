@@ -109,6 +109,22 @@ before adding propellers.
   needs it, upstream it; otherwise stay with `udf` and keep the PR
   small.
 
+> **Progress note (2026-06-12) — DTC bare-hull resistance, step 1 of Layer 3.**
+> First resistance run on the *real* DTC geometry (full five-package
+> stack: WaterLily+VoF+Turbulence+ShipShapes, tabulated SDF). Stack
+> integrates and is stable/mass-conserving, but the calm-water
+> resistance at Fr=0.218 **does not pass** the ±15 % gate: C_P,sim ≈
+> 3.6e-3 (NL=128) vs reference residuary C_R = 0.62e-3 (+475 %). The
+> resolved force is dominated by a trapped longitudinal sloshing mode
+> (C_T ±56 % std, never settles) and BDIM form-drag bias; the Froude
+> subtraction C_T−C_F,ITTC is invalid because BDIM develops ~no wall
+> friction (no y⁺ wall function — exactly the risk-register item). The
+> *fully-submerged* DTC drag IS grid-converged (C_P,deep=5.25e-3,
+> split-half 1.6 %), confirming the geometry/solver integration is
+> sound. Details + next steps: [RESULTS-dtc-resistance.md]. Bare-hull
+> resistance must settle (kill sloshing, add near-wall stress model)
+> before the DTCHullProp self-propulsion gate below is reachable.
+
 **Decision gate.** Is the self-propulsion point predicted within ±15%
 of OpenFOAM and ±20% of experiment? If yes, ship a v0.1 of every
 package and open the upstream PR. If not, debug — most likely
