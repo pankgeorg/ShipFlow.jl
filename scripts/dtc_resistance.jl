@@ -149,8 +149,15 @@ hull_map = (x, t) -> SVector(
 )
 hull = ShipShapes.tabulated_sdf(table; map = hull_map)
 
-# --- Initial α: water below the design waterline ----------------------------
-α₀(_i, x_cell) = (x_cell[3] ≤ WL_CZ) ? 1.0 : 0.0
+# --- Initial α --------------------------------------------------------------
+# Free surface: water below the design waterline (default).
+# Deep-water reference (WL_DEEP=1): α=1 everywhere → fully-submerged hull,
+# no surface piercing. Its drag is the form+friction baseline; subtracting it
+# from the free-surface run isolates the WAVE-MAKING component (the
+# RESULTS-drag-decomposition.md method), which removes the hull's form drag
+# and the common BDIM-staircase bias.
+const DEEP = get(ENV, "WL_DEEP", "0") == "1"
+α₀ = DEEP ? ((_i, x_cell) -> 1.0) : ((_i, x_cell) -> (x_cell[3] ≤ WL_CZ) ? 1.0 : 0.0)
 
 const OUTDIR = abspath(joinpath(@__DIR__, "..", "runs", "dtc_resistance"))
 mkpath(OUTDIR)
