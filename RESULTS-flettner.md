@@ -2,12 +2,12 @@
 
 > **Verdict.** The 2D **panel method reproduces the inviscid closed form
 > to ε < 0.02 %** (the assignment tolerance) at **N = 160 panels**, across
-> the whole ω sweep — the potential-flow side of Q3 is nailed. The
-> **viscous WaterLily run** is the real-flow sidebar: a boundary layer
-> separates and the spin convects the separation point, so the viscous
-> C_L grows far more slowly with ω than the inviscid `4πωR²/V∞` (and
-> eventually saturates / reverses at high spin) — that *deviation* is the
-> physics the comparison is meant to expose.
+> the whole ω sweep — the potential-flow side of Q3 is nailed and is the
+> quantitative deliverable. The **viscous WaterLily run is PARTIAL / not
+> validated**: the static (ω=0) case is correct, but the rotating-body
+> force extraction returns nonphysical lift (wrong sign, ~10× too large) —
+> see §2. Per the plan it is the optional sidebar to drop if it thrashes;
+> it is kept here as a documented starting point, not as a result.
 
 Three solvers for the same rotating cylinder (R = 0.5, V∞ = 1):
 
@@ -71,12 +71,36 @@ julia --project=. scripts/flettner_viscous.jl --omega 1.0 --R 24 --Re 200 --tend
 julia --project=. scripts/flettner_viscous.jl --sweep --R 24 --Re 200 --tend 50
 ```
 
-**Status (2026-06-13):** the script runs and steps (verified alive), but on
-the 16D × 8D domain the pressure solve is slow per step; treat it as the
-optional sidebar the plan flags ("drop if it thrashes — panel + analytical
-already answer Q3 as posed"). Re-run the sweep with a coarser domain / lower
-ω if you want the viscous overlay; the harness writes `cl_vs_omega.csv` and
-`cp_w*.csv` into `runs/flettner_viscous/` for the overlay against §1.
+**Status (2026-06-13): PARTIAL — not validated; the sidebar the plan says
+to drop if it thrashes.** The script runs end-to-end and the *static* case
+is correct — at ω = 0 it gives C_L ≈ 0 (−0.0007), confirming the
+pressure/viscous force machinery and the Cp sampling. But with the spin
+turned on the extracted lift is nonphysical:
+
+| ω | C_L viscous (this script, R=8, Re=150) | C_L inviscid |
+|---:|---:|---:|
+| 0.0 | −0.001 | 0.000 |
+| 1.0 | **−32.4** | 3.142 |
+| 2.0 | **−58.4** | 6.283 |
+
+Both the **sign and the magnitude are wrong** (a real Flettner C_L is a
+modest positive fraction of the inviscid value, not ~10× larger and
+negative). The fault is in the rotating-body force extraction, not the
+flow solve: spinning the cylinder through a rotation `map` makes
+`pressure_force`/`viscous_force` pick up the unsteady and rotational
+pressure contributions on the immersed boundary, which the simple
+`F = −(fp+fv)` reduction does not separate from the true aerodynamic lift.
+On a smooth (rotation-symmetric SDF) body the spin also has to be imposed
+purely through the BDIM velocity, and at R ≈ 8–16 cells that surface
+velocity is under-resolved.
+
+**This is left as a documented starting point, not a result.** Fixing it
+needs one of: (a) a no-slip *surface-velocity* boundary condition that does
+not move the SDF (so the gauge pressure stays clean), (b) subtracting the
+rigid-body/added-mass pressure contribution before integrating, and (c) a
+finer cylinder (R ≳ 32) once (a)/(b) are right. The inviscid panel/analytic
+agreement (§1) is the quantitative Q3 deliverable; this viscous overlay is
+the optional qualitative sidebar and is **not** trustworthy as written.
 
 **Expected physics** (what the overlay should show once collected):
 
