@@ -124,6 +124,26 @@ before adding propellers.
 > sound. Details + next steps: [RESULTS-dtc-resistance.md]. Bare-hull
 > resistance must settle (kill sloshing, add near-wall stress model)
 > before the DTCHullProp self-propulsion gate below is reachable.
+>
+> **Progress note (2026-06-13) — DTC resistance round 2.** Acted on the
+> three round-1 root causes. **Fix 1 (sloshing): PARTIAL.** Built a
+> sponge/wave-damping zone; the key result is a numerics finding — a
+> Rayleigh *velocity* body force in `mom_step!`'s `udf` stalls the
+> multigrid Poisson (nit 50 vs 2–3) on the two-phase 100:1 system, so the
+> velocity relaxation must be applied **post-projection** (`post_sponge!`).
+> That + α (surface) damping reduces the swing and is Poisson-safe, but
+> the confined-box longitudinal **seiche** persists (split-half ≈10 %,
+> not the <2 % target) — reported as a windowed mean ± std. **Fix 2
+> (Froude walk): BLOCKED** on a settled C_T; also corrected the
+> reference — the el Moctar 2012 towing-tank envelope ends at **Fr=0.218**
+> (no 0.28/0.33 truth), so the grounded walk is down the tested ladder.
+> **Fix 3 (near-wall stress): WIRED + smoke-tested** — Turbulence.jl's
+> Spalding BDIM wall function (SA path, water-gated) runs end-to-end from
+> the DTC SDF but is not yet exercised at scale (gates on Fix 1).
+> Next: settle the seiche (longer upstream fetch for a real inlet sponge,
+> or an integer-period averaging window / steady local-time-stepping),
+> then exercise Fix 3 and walk the Froude ladder. Details:
+> [RESULTS-dtc-resistance.md] §Round 2.
 
 **Decision gate.** Is the self-propulsion point predicted within ±15%
 of OpenFOAM and ±20% of experiment? If yes, ship a v0.1 of every
