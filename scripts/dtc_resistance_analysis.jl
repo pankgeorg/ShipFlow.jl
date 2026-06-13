@@ -19,17 +19,44 @@ const OUTDIR = abspath(joinpath(@__DIR__, "..", "runs", "dtc_resistance"))
 const WIN_LO = parse(Float64, get(ENV, "WL_WIN_LO", "2.0"))
 const LPP_M  = 5.976
 
-# --- Published reference (Table 4, Fr=0.218, model scale) -------------------
-const FR_REF   = 0.218
-const RE_M     = 9.145e6
-const CT_EXP   = 3.670e-3
-const CF_EXP   = 3.047e-3      # ITTC-57 at Re_m (matches the paper)
-const CW_EXP   = 3.360e-4      # paper, with form factor k=0.094
+# --- Published reference (el Moctar/Shigunov/Zorn 2012, Tab. 4, model scale) -
+# FULL Table 4 (verified against the source PDF, round-2): the SVA Potsdam
+# towing tank tested SIX speeds, Fr = 0.174 … 0.218 ONLY. There is NO
+# experimental point at Fr = 0.28 or 0.33 (those are above the tested
+# envelope), so any sim at those Fr can only be reported with the
+# ITTC-friction-subtracted C_R and an explicit "no experimental reference"
+# caveat — never invent a number. C_T, C_F are ×1e-3; C_W is ×1e-4.
+# Columns: Fr => (Re_M, CT, CF_ITTC, CW)  (CW = CT − (1+k)·CF, k = 0.094)
 const K_FORM   = 0.094
+const TAB4 = Dict(
+    0.174 => (7.319e6, 3.661e-3, 3.170e-3, 1.932e-4),
+    0.183 => (7.681e6, 3.605e-3, 3.142e-3, 1.672e-4),
+    0.192 => (8.054e6, 3.588e-3, 3.116e-3, 1.791e-4),
+    0.200 => (8.415e6, 3.602e-3, 3.092e-3, 2.194e-4),
+    0.209 => (8.783e6, 3.623e-3, 3.069e-3, 2.660e-4),
+    0.218 => (9.145e6, 3.670e-3, 3.047e-3, 3.360e-4),
+)
+# Default reference point (highest tested = largest wave fraction).
+const FR_REF   = 0.218
+const RE_M     = TAB4[FR_REF][1]
+const CT_EXP   = TAB4[FR_REF][2]
+const CF_EXP   = TAB4[FR_REF][3]      # ITTC-57 at Re_m (matches the paper)
+const CW_EXP   = TAB4[FR_REF][4]      # paper, with form factor k=0.094
 # Simple Froude residuary (no form factor) — the PLAN's C_R definition:
 const CR_REF   = CT_EXP - CF_EXP            # = 0.623e-3
 
 CF_ittc(Re) = 0.075 / (log10(Re) - 2)^2
+
+# Nearest tabulated reference for an arbitrary simulated Fr (within 0.005),
+# else nothing. Returns (Fr_ref, CT, CF, CW, CR=CT−CF).
+function tab4_ref(fr)
+    best = nothing; bd = 0.005
+    for (f, v) in TAB4
+        d = abs(f - fr)
+        d ≤ bd && (bd = d; best = (f, v[2], v[3], v[4], v[2]-v[3]))
+    end
+    return best
+end
 
 # --- Per-grid window average ------------------------------------------------
 function grid_stats(tag)

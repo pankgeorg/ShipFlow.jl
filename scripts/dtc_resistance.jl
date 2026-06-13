@@ -78,6 +78,42 @@ const RAMP_LU  = parse(Float64, get(ENV, "WL_RAMP_LU", "1.0"))
 const HYDRO    = get(ENV, "WL_HYDRO", "0") == "1"
 const TAG      = get(ENV, "WL_TAG", string(N_L))
 
+# --- Fix 1: sponge / wave-damping + gentle inflow ramp knobs ----------------
+# Rayleigh damping layer near the outlet (and a thinner inlet layer) relaxes
+# u → u_ref = (U∞,0,0) and α → α_still through a body force applied via the
+# `udf` hook, killing the trapped longitudinal sloshing mode (round-1 §1).
+const SPONGE     = get(ENV, "WL_SPONGE", "1") == "1"     # on by default round-2
+const SPONGE_W   = parse(Float64, get(ENV, "WL_SPONGE_W",     "0.65"))  # outlet zone width [Lpp]
+const SPONGE_WIN = parse(Float64, get(ENV, "WL_SPONGE_WIN",   "0.25"))  # inlet  zone width [Lpp]
+const SPONGE_SIG = parse(Float64, get(ENV, "WL_SPONGE_SIGMA", "2.5"))   # σ_max · Lpp/U∞
+const SPONGE_ATOP= parse(Float64, get(ENV, "WL_SPONGE_TOP",   "0.0"))   # top zone width [Lpp], 0=off
+# The velocity sponge (-σ(u−u_ref) body force) and the α (surface) damping are
+# now independently toggleable. The velocity body force enters the pressure
+# projection and, if strong, stalls the multigrid (nit→itmx); the α-damping is
+# a post-VoF relaxation that does NOT touch the Poisson and is the piece that
+# actually flattens the standing wave. Default: α-damp ON, velocity sponge OFF.
+const SPONGE_UVEL = get(ENV, "WL_SPONGE_UVEL", "0") == "1"   # velocity body-force sponge
+# POST-projection velocity relaxation (Poisson-safe): after mom_step! returns a
+# divergence-free field, relax u → u_ref in the sponge by an explicit factor
+# (1 − w), w = SPONGE_UPOST·(σ/σ_max). Applied to the CONVERGED field (not
+# inside the solver), so it never stalls the multigrid; the small divergence it
+# introduces is removed by the next step's projection. This bleeds the standing
+# wave's kinetic energy that α-damping (surface only) leaves behind.
+const SPONGE_UPOST = parse(Float64, get(ENV, "WL_SPONGE_UPOST", "0.0"))  # 0=off
+const SPONGE_ADMP= parse(Float64, get(ENV, "WL_SPONGE_ADAMP", "1.0"))   # α-damp blend factor ∈[0,1]
+# Gentle combined ramp: scale the *inflow target* (uBC) over the first
+# RAMP_LU L/U as well as gravity, so the freestream is not impulsive.
+const INFLOW_RAMP = get(ENV, "WL_INFLOW_RAMP", "1") == "1"
+
+# --- Fix 3: near-wall stress model (BDIM Spalding wall function) knobs -------
+# Turns Turbulence.jl's existing wall function on so resolved friction becomes
+# physical. SA preferred (its BDIM wall function hit the channel log-law within
+# 7.4 %); SST has a native ω-wall and normally should NOT also use wallfn.
+const WALLFN  = get(ENV, "WL_WALLFN", "0") == "1"
+const WL_BAND = let s = get(ENV, "WL_BAND", "1,3")
+    p = split(s, ','); (parse(Float64, p[1]), parse(Float64, p[2]))
+end
+
 const T_NUM = Float64
 const U∞ = 1.0
 
@@ -89,7 +125,11 @@ const L_c = Float64(N_L)                      # Lpp in cells (reference length)
 # width ≥ 1.2 Lpp, depth ≥ 0.75 below waterline + ≥ 0.25 above.
 # The SDF frame has x≈0 at the bbox centre ≈ midship, the hull spanning
 # ±0.589 Lpp incl. overhangs; place midship at x = 0.75 Lpp from inlet.
-const DOM_X_LO = -0.75; const DOM_X_HI = 1.85   # Lpp upstream/downstream of midship
+# Round 2: the downstream extent is now a knob so the outlet sponge (Fix 1) has
+# wake room AFT of the stern (hull bbox spans ±0.589 Lpp; stern ≈ +0.59 Lpp from
+# midship = +1.34 Lpp from inlet). Lengthen to keep the sponge clear of the hull.
+const DOM_X_LO = -0.75
+const DOM_X_HI = parse(Float64, get(ENV, "WL_DOM_XHI", "2.50"))  # downstream extent [Lpp]
 const DOM_Y    = 1.30                            # total width in Lpp
 const DOM_Z_DN = 0.80                            # below design waterline, Lpp
 const DOM_Z_UP = 0.30                            # above design waterline, Lpp
@@ -177,13 +217,19 @@ elseif TURB == "smagorinsky"
 elseif TURB == "sst"
     KOmegaSST((NX, NY, NZ), hull; ν = ν_w_c, k∞ = 1e-4, ω∞ = 1.0,
               perdir = (2,), T = T_NUM)
+elseif TURB == "sa"
+    # Spalart–Allmaras: the model whose BDIM wall function hit the channel
+    # log-law within 7.4 % (RESULTS-channel-sa.md). ν̃∞=3ν fully turbulent.
+    SpalartAllmaras((NX, NY, NZ), hull; ν = ν_w_c, ν̃∞ = 3ν_w_c,
+                    perdir = (2,), T = T_NUM)
 elseif TURB == "none"
     nothing
 else
-    error("unknown WL_TURB=$TURB (wale|smagorinsky|sst|none)")
+    error("unknown WL_TURB=$TURB (wale|smagorinsky|sst|sa|none)")
 end
 
 is_sst = turb_model isa KOmegaSST
+is_sa  = turb_model isa SpalartAllmaras
 is_les = (turb_model isa WALE) || (turb_model isa Smagorinsky)
 
 # ν closure passed to Flow. The foam-integration WaterLily reads ν through a
@@ -212,17 +258,188 @@ end
 
 # Gravity ramp: only the gravity *force* ramps over the first RAMP_LU L/U,
 # so the hydrostatic field is established gently (template pattern).
-const RAMP_STEPS_TARGET = RAMP_LU * L_c / U∞    # in cell-time units (approx)
+const RAMP_END_CELL_K = RAMP_LU * L_c / U∞       # ramp length in cell-time units
 g_ramp = Ref(0.0)                                # current ramp scale ∈ [0,1]
 g_fn = (i, x, t) -> i == 3 ? T_NUM(-G_c * g_ramp[]) : T_NUM(0)
 
-sim = WaterLily.Simulation((NX, NY, NZ), (T_NUM(U∞), T_NUM(0), T_NUM(0)), L_c;
+# Smooth ramp profile (0→1 over [0,1], C¹ at both ends): smoothstep. Written
+# generically so ForwardDiff Duals (used for the reference-frame accel) survive.
+@inline smoothramp(s) = s ≤ zero(s) ? zero(s) : s ≥ one(s) ? one(s) : s*s*(3 - 2s)
+
+# Fix 1: gentle inflow ramp. Instead of an impulsive freestream, ramp the
+# inlet/reference velocity 0→U∞ over the first RAMP_LU L/U. WaterLily evaluates
+# uBC(i,x,t) at the actual flow time t (cell-time units), so we ramp directly
+# off t — self-consistent with the convective transient the sponge absorbs.
+# NOTE: return type must follow `t` (WaterLily differentiates uBC w.r.t. t via
+# ForwardDiff for the reference-frame acceleration term), so do NOT hard-cast to
+# Float64 here — let Duals propagate. smoothramp is written generically.
+uBC_fn = if INFLOW_RAMP
+    (i, x, t) -> i == 1 ? U∞ * smoothramp(t / max(RAMP_END_CELL_K, eps())) : zero(t)
+else
+    (i, x, t) -> i == 1 ? oftype(t, U∞) : zero(t)
+end
+
+sim = WaterLily.Simulation((NX, NY, NZ), uBC_fn, L_c;
     T = T_NUM, ν = ν_for_flow, g = g_fn, Δt = 0.25, body = hull, ϵ = 1,
     perdir = (2,), exitBC = true, pois_ctor = vof_pois_ctor, U = T_NUM(U∞))
 
 # Prime the LES eddy-viscosity field (initialised to ν₀=0) so the first
 # mom_step! sees the molecular viscosity rather than zero.
 is_les && update_νt!(turb_model, sim.flow.u, vof.ν)
+
+# ============================================================================
+# Fix 1 — Rayleigh damping (sponge) layer.
+# ============================================================================
+# Precompute a per-cell damping rate σ(x) [1/cell-time] that is 0 over the hull
+# and near wake, rising smoothly (quadratic) to σ_max at the domain outlet, plus
+# a thinner inlet band that absorbs the upstream-running reflected wave, plus an
+# optional top band. The udf adds  f[I,i] += -σ(x)·(u[I,i] - u_ref_i)  to the
+# body-force accumulator (BDIM's μ₀ mask zeros it inside the hull automatically).
+# σ_max is set in physical (Lpp/U∞) units: σ_max_cell = SPONGE_SIG · U∞ / L_c.
+# All arrays are ghost-padded to (NX+2,NY+2,NZ+2); cell-centre coordinate of
+# index I along a dim is (I − 1.5) (VoF._ic_loc convention, matches WL_CZ and
+# the hull_map). Interior cells span index 2..N+1 → coords 0.5..N−0.5.
+const σ_max_cell = SPONGE_SIG * U∞ / L_c
+const X_OUT      = (NX + 1) - 1.5                 # last interior cell-x = NX-0.5
+const X_IN       = 2 - 1.5                         # first interior cell-x = 0.5
+const SP_W_CELL   = SPONGE_W   * L_c              # outlet zone width [cells]
+const SP_WIN_CELL = SPONGE_WIN * L_c              # inlet  zone width [cells]
+const SP_TOP_CELL = SPONGE_ATOP * L_c             # top    zone width [cells]
+const Z_TOP       = (NZ + 1) - 1.5                # last interior cell-z
+
+# σ array, ghost-padded to match flow.u / flow.f / vof.α. Built once.
+σ_sponge = SPONGE ? zeros(T_NUM, NX + 2, NY + 2, NZ + 2) : nothing
+if SPONGE
+    inner_out = X_OUT - SP_W_CELL                 # inner edge of outlet zone
+    inner_in  = X_IN  + SP_WIN_CELL               # inner edge of inlet  zone
+    inner_top = Z_TOP - SP_TOP_CELL
+    @inbounds for I in CartesianIndices(σ_sponge)
+        i, k = I[1], I[3]
+        xc = (i - 1.5); zc = (k - 1.5)
+        s = 0.0
+        # Outlet band: quadratic ramp 0→1 from inner edge to outlet.
+        if SP_W_CELL > 0 && xc > inner_out
+            ξ = (xc - inner_out) / SP_W_CELL
+            s = max(s, ξ*ξ)
+        end
+        # Inlet band: quadratic ramp 1→0 from inlet to inner edge.
+        if SP_WIN_CELL > 0 && xc < inner_in
+            ξ = (inner_in - xc) / SP_WIN_CELL
+            s = max(s, ξ*ξ)
+        end
+        # Top band (above the air gap): quadratic ramp 0→1 toward the lid.
+        if SP_TOP_CELL > 0 && zc > inner_top
+            ξ = (zc - inner_top) / SP_TOP_CELL
+            s = max(s, ξ*ξ)
+        end
+        σ_sponge[I] = σ_max_cell * min(s, 1.0)
+    end
+    # Hull bbox in cell-x (from the SDF table extent ±0.589 Lpp about midship).
+    bow_cx  = (0.75 - 0.589) * L_c        # forward perpendicular, cells from inlet
+    stern_cx = (0.75 + 0.590) * L_c       # aft  perpendicular
+    @printf "  SPONGE on: σ_max=%.3e/ct (=%.1f U/L)  out=%.2f Lpp inlet=%.2f Lpp top=%.2f Lpp  α-damp=%.2f  uvel-sponge=%s\n" (
+        σ_max_cell) SPONGE_SIG SPONGE_W SPONGE_WIN SPONGE_ATOP SPONGE_ADMP (SPONGE_UVEL ? "ON" : "off")
+    @printf "  post-sponge (Poisson-safe u-relax) = %.2f\n" SPONGE_UPOST
+    @printf "  sponge edges: inlet→%.1f cells | hull[%.1f,%.1f] | %.1f cells←outlet  (X_OUT=%.1f)\n" (
+        inner_in) bow_cx stern_cx inner_out X_OUT
+    if inner_in > bow_cx
+        @warn "INLET sponge intrudes on hull bow (inner_in=$(round(inner_in,digits=1)) > bow=$(round(bow_cx,digits=1)) cells) — reduce WL_SPONGE_WIN"
+    end
+    if inner_out < stern_cx
+        @warn "OUTLET sponge intrudes on hull stern (inner_out=$(round(inner_out,digits=1)) < stern=$(round(stern_cx,digits=1)) cells) — reduce WL_SPONGE_W or raise WL_DOM_XHI"
+    end
+    flush(stdout)
+end
+
+# ============================================================================
+# Fix 3 — gate the BDIM wall function to the water.
+# ============================================================================
+# step_sa!(...; wallfn=true) writes the Spalding-law ν override into m.ν over
+# the WHOLE near-wall band, including the air-side BDIM cells above the
+# waterline. Friction must only load in the water, so after the step we restore
+# the un-wall-functioned effective viscosity (ν_mol + ν_t,model) in any band
+# cell whose VoF fraction α ≤ 0.5. We hold the pre-wall-function ν in a buffer.
+const _has_sa = (TURB == "sa")
+ν_nowf_buf = _has_sa ? similar(turb_model.ν) : nothing
+function gate_wallfn_to_water!(ν, α, νmol)
+    # ν currently holds the wall-functioned field; ν_nowf_buf holds the
+    # pre-override (model-only) field captured just before apply_wall_function!.
+    @inbounds for I in CartesianIndices(ν)
+        # α is interior-sized (NX,NY,NZ); ν is (NX,NY,NZ) too here.
+        if α[I] ≤ 0.5
+            ν[I] = ν_nowf_buf[I]
+        end
+    end
+    return nothing
+end
+
+# udf closure: relax velocity toward u_ref=(U∞,0,0) inside the sponge.
+# Signature (flow, t; kwargs...) per WaterLily's udf! hook. The force is an
+# acceleration (BDIM does u += dt·f), so σ has units 1/cell-time. f[I,i] is the
+# i-th velocity-component face value; we damp toward the freestream component.
+function sponge_force!(flow, t; kwargs...)
+    σ = σ_sponge
+    f = flow.f
+    u = flow.u
+    D = ndims(flow.p)
+    @inbounds for i in 1:D
+        uref = (i == 1) ? T_NUM(U∞) : zero(T_NUM)
+        for I in CartesianIndices(σ)
+            σI = σ[I]
+            σI == 0 && continue
+            f[I, i] -= σI * (u[I, i] - uref)
+        end
+    end
+    return nothing
+end
+
+# α-damping: after the VoF step, blend α toward the still-water profile inside
+# the sponge so the OUTGOING wave's surface deformation is flattened (this is
+# the piece that actually stops the standing wave, not just its velocity).
+# α_still = 1 below the design waterline, 0 above. Blend weight = SPONGE_ADMP·
+# (σ/σ_max) so it tracks the same spatial ramp as the velocity sponge.
+function damp_alpha!(α)
+    (SPONGE && SPONGE_ADMP > 0 && σ_max_cell > 0) || return nothing
+    σ = σ_sponge; b = SPONGE_ADMP; inv_smax = 1.0 / σ_max_cell
+    R = CartesianIndices(α)
+    Threads.@threads for I in R
+        @inbounds begin
+            σI = σ[I]
+            if σI != 0
+                w = b * (σI * inv_smax)
+                # still-water profile: α=1 below the design waterline (same as
+                # the α₀ IC: cell-centre z = k − 1.5 vs WL_CZ).
+                α_still = ((I[3] - 1.5) ≤ WL_CZ) ? one(T_NUM) : zero(T_NUM)
+                α[I] += T_NUM(w) * (α_still - α[I])
+            end
+        end
+    end
+    return nothing
+end
+
+# Post-projection velocity relaxation (Poisson-safe sponge). Call AFTER
+# mom_step! on the converged, divergence-free flow.u. Relaxes every velocity
+# component toward u_ref=(U∞,0,0) by factor w in the sponge; the next step's
+# projection re-imposes incompressibility, so this never enters the solver.
+function post_sponge!(u)
+    (SPONGE && SPONGE_UPOST > 0 && σ_max_cell > 0) || return nothing
+    σ = σ_sponge; b = SPONGE_UPOST; inv_smax = 1.0 / σ_max_cell
+    D = ndims(u) - 1
+    R = CartesianIndices(σ)
+    for i in 1:D
+        uref = (i == 1) ? T_NUM(U∞) : zero(T_NUM)
+        Threads.@threads for I in R
+            @inbounds begin
+                σI = σ[I]
+                if σI != 0
+                    w = min(b * (σI * inv_smax), 1.0)
+                    u[I, i] += T_NUM(w) * (uref - u[I, i])
+                end
+            end
+        end
+    end
+    return nothing
+end
 
 # --- Diagnostics ------------------------------------------------------------
 function max_wave(α)
@@ -298,10 +515,21 @@ flush(stdout)
 
 while t_cell < T_END_CELL
     global step += 1
-    g_ramp[] = min(1.0, t_cell / max(RAMP_END_CELL, eps()))
+    g_ramp[] = smoothramp(t_cell / max(RAMP_END_CELL, eps()))
 
-    WaterLily.mom_step!(sim.flow, sim.pois)
+    # Fix 1: forward the velocity sponge udf only if explicitly enabled (it
+    # enters the Poisson and can stall the solver — default OFF; α-damp below
+    # is the real slosh killer and is projection-free).
+    if SPONGE && SPONGE_UVEL
+        WaterLily.mom_step!(sim.flow, sim.pois; udf = sponge_force!)
+    else
+        WaterLily.mom_step!(sim.flow, sim.pois)
+    end
     dt = sim.flow.Δt[end-1]
+
+    # Fix 1 (Poisson-safe): relax velocity toward freestream in the sponge on the
+    # converged field, before VoF advects with it. No-op if WL_SPONGE_UPOST=0.
+    post_sponge!(sim.flow.u)
 
     # VoF advection (PLAN §2: plain MULES or clamp/mass_repair; never c_α=1).
     if VOFMODE == "clamp"
@@ -309,12 +537,26 @@ while t_cell < T_END_CELL
     else
         step_vof_mules!(vof, sim; dt = dt, perdir = (2,))
     end
+    # Fix 1: damp α toward still water inside the sponge (flattens the outgoing
+    # wave's surface deformation — the piece that actually kills the slosh).
+    damp_alpha!(vof.α)
 
     # Refresh eddy viscosity.
     if is_les
         update_νt!(turb_model, sim.flow.u, vof.ν)
     elseif is_sst
-        step_sst!(turb_model, sim.flow.u, dt; production = :kato_launder)
+        step_sst!(turb_model, sim.flow.u, dt; production = :kato_launder,
+                  wallfn = WALLFN, band = (T_NUM(WL_BAND[1]), T_NUM(WL_BAND[2])))
+    elseif is_sa
+        # Step SA WITHOUT the internal wall function so we can capture the
+        # model-only ν, then apply + gate the wall function to water cells.
+        step_sa!(turb_model, sim.flow.u, dt)
+        if WALLFN
+            copyto!(ν_nowf_buf, turb_model.ν)          # model-only ν snapshot
+            apply_wall_function!(turb_model.ν, sim.flow.u, turb_model.d, ν_w_c;
+                band = (T_NUM(WL_BAND[1]), T_NUM(WL_BAND[2])), perdir = (2,))
+            gate_wallfn_to_water!(turb_model.ν, vof.α, ν_w_c)  # restore air cells
+        end
     end
 
     global t_cell += dt
