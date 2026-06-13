@@ -314,8 +314,16 @@ moving the velocity relaxation to a **post-projection** explicit step
 (`post_sponge!`). Anyone adding a momentum sponge to this stack should
 apply it post-projection, never as a `udf` body force.
 
-<!-- A stronger/wider variant (UPOST=1.0, outlet band 1.4 Lpp) was run
-last; if it improved on the above it is noted in the Fix-2/3 status. -->
+A **stronger/wider variant** (`UPOST=1.0`, outlet band 1.4 Lpp,
+`fix1f`) was run to test whether more aggressive end-zone damping cracks
+the seiche: it does **not** — C_T = 3.65e-3 ± 2.45e-3, split-half
+**14.9 %** (slightly *worse* than `UPOST=0.5`). The standing wave is
+robust against damping *strength*; the limit is that the bands can only
+sit at the box ends, not at the seiche antinodes near/under the hull.
+Killing it needs a structurally different approach (much longer domain
+with a real inlet sponge ahead of the bow; a non-reflecting outflow;
+integer-period or far-longer averaging; or a steady local-time-stepping
+formulation) — out of scope for this round, on the next-steps list.
 
 ### Reference data correction (important)
 
