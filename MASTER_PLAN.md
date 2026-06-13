@@ -144,6 +144,34 @@ before adding propellers.
 > or an integer-period averaging window / steady local-time-stepping),
 > then exercise Fix 3 and walk the Froude ladder. Details:
 > [RESULTS-dtc-resistance.md] §Round 2.
+>
+> **Progress note (2026-06-13) — propeller actuator-disk Layer-2 PASS
+> (step 2, "option D").** Chosen because it is *independent* of the
+> unsolved DTC free-surface seiche above. The in-grid actuator disk now
+> round-trips the validated DTMB-4382 open-water VLM: feed the VLM's
+> radial loading (dT/dr, dQ/dr) into a new `Propellers.GradedDisk`, run
+> single-phase in WaterLily, integrate the resolved thrust+torque, and
+> recover KT/KQ/η within **<0.3 %** at J = 0.6, 0.889, 1.1 — well inside
+> the ±10 % Layer-2 gate. The tightness is partly structural (in a
+> confined periodic duct the control-volume momentum/angular-momentum
+> balance is a conservation identity), so the headline is that the
+> *whole pipeline is self-consistent* — VLM coefficients → radial loading
+> → cell-unit (J,n,D,ρ) conversion → body-force deposition → resolved-flux
+> recovery — and the in-grid axial/swirl profiles reproduce the VLM's
+> bell-shaped radial loading. Ladder 1 (analytic): the uniform disk
+> matches Froude–Rankine induced velocity to ~2 % across C_T=0.2–1.5 and
+> shows the slipstream contraction. Ladder 3 (OpenFOAM `propeller`
+> tutorial): identified as a *resolved rotating-mesh* propeller (1500 rpm
+> solidBody, snappyHexMesh, createBaffles), **not** an actuator disk and
+> with no published reference KT/KQ — so no like-for-like and no
+> documented-value compare; a rerun is infeasible on this aarch64 box
+> (OpenFOAM images are amd64-only, the Phase-0 qemu blocker). The
+> defensible external anchors for the disk are therefore momentum theory
+> + the experiment-matched VLM. This **unblocks** the actuator-disk side
+> of the DTCHullProp self-propulsion gate below: the propeller model is
+> validated; what remains is the hull resistance (the seiche) and wiring
+> the disk behind the resolved DTC. Details:
+> [RESULTS-propeller-layer2.md]; `Propellers.jl` PLAN milestone 2.
 
 **Decision gate.** Is the self-propulsion point predicted within ±15%
 of OpenFOAM and ±20% of experiment? If yes, ship a v0.1 of every
