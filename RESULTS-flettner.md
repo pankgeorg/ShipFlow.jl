@@ -1,7 +1,7 @@
 # Flettner rotor — analytical vs panel vs viscous
 
 > **Verdict.** The 2D **panel method reproduces the inviscid closed form
-> to ε < 0.02 %** (the assignment tolerance) at **N = 160 panels**, across
+> to ε < 0.02 %** at **N = 160 panels**, across
 > the whole ω sweep — the potential-flow side of Q3 is nailed and is the
 > quantitative deliverable. The **viscous WaterLily run is now FIXED and
 > physically validated** (2026-06-13): a static-SDF spinning-cylinder body

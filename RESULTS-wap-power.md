@@ -1,10 +1,10 @@
-# RESULTS — wind-assist sea-trial power analysis (NTUA-8401 Θέμα 5)
+# RESULTS — wind-assist sea-trial power analysis
 
-**Tool demonstration**, not the submitted coursework answer. This runs
-`NavalArchitectToolbox.wap_power_analysis` on the staged Θέμα-5 sea-trial
-data to show the tool reproduces a coherent raw-vs-wind-corrected ΔP. The
-final ΔP figure for the assignment (with whatever η_D / fit form / trimming
-the author decides to defend) is the user's to produce by driving the tool.
+**Tool demonstration.** This runs
+`NavalArchitectToolbox.wap_power_analysis` on a staged sea-trial
+dataset to show the tool reproduces a coherent raw-vs-wind-corrected ΔP.
+The choice of η_D / fit form / trimming for any final figure is left to the
+analyst driving the tool.
 
 ## What the tool computes
 
@@ -38,11 +38,11 @@ reduces required power. Two passes, per a reduced **ITTC 7.5-04-01-02**:
 | fit form | `P = a·V^b` (log-space LSQ) | — |
 | AWA handling | `|AWA|` (table is 0–180°; load symmetric about bow–stern) | — |
 
-Run via (data path `../cerulean-reference-data/thema5/`):
+Run via (data path `../cerulean-reference-data/wap_sea_trial/`):
 
 ```julia
 using NavalArchitectToolbox
-D = "../cerulean-reference-data/thema5/"
+D = "../cerulean-reference-data/wap_sea_trial/"
 coef = D*"added_wind_coef.csv"
 wap_power_analysis(D*"RUN_A.csv", coef)                       # RUN_A
 wap_power_analysis(D*"RUN_B.csv", coef)                       # RUN_B
@@ -138,11 +138,11 @@ not strongly sensitive to this assumption at this wind level.
 ```
 julia --project=NavalArchitectToolbox.jl -e '
   using NavalArchitectToolbox
-  D="../cerulean-reference-data/thema5/"; c=D*"added_wind_coef.csv"
+  D="../cerulean-reference-data/wap_sea_trial/"; c=D*"added_wind_coef.csv"
   for r in ("RUN_A.csv","RUN_B.csv"); @show wap_power_analysis(D*r,c).ΔP_corr; end
   @show wap_power_analysis([D*"RUN_A.csv",D*"RUN_B.csv"],c).ΔP_corr'
 ```
 
 Tool + synthetic unit tests live in `NavalArchitectToolbox.jl`
 (`src/wap.jl`, `test/runtests.jl`); the trial data is in
-`cerulean-reference-data/thema5/` (not committed into the toolbox).
+`cerulean-reference-data/wap_sea_trial/` (not committed into the toolbox).

@@ -246,11 +246,11 @@ That's the bar.
   each PLAN and asks: did the most recent gate pass? If not, what's
   blocking? No rewrite of plans unless a gate flips.
 
-## Aside — 8401 lifting-device tools (capability additions)
+## Aside — lifting-device tools (capability additions)
 
 Outside the five-package ship-CFD arc, the stack also carries reusable
-lifting/circulation tools for the NTUA 8401 themes (see
-`PLAN-lifting-devices.md`): `LiftingSurfaces.Wing` (finite-wing VLM,
+lifting/circulation tools for wind-assisted-propulsion devices:
+`LiftingSurfaces.Wing` (finite-wing VLM,
 validated vs lifting-line), `NavalArchitectToolbox.flettner_panel` /
 `flettner_analytic` (2D rotating-cylinder potential flow, ε<0.02 % vs the
 closed form at N=160), and `scripts/flettner_viscous.jl` here (the
