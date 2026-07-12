@@ -5,29 +5,34 @@
 # (fixed U∞ = 2 m/s, J = U/(nD) => omega = 2*pi*U/(J*D)), meshes with
 # snappyHexMesh (parallel), runs simpleFoam (parallel), leaves forces in
 # postProcessing/forces/.
+# NB: source the OpenFOAM env BEFORE set -e — its setup script trips
+# errexit ("pop_var_context" bash error) when sourced under set -e.
+source /usr/lib/openfoam/openfoam2512/etc/bashrc 2>/dev/null || true
 set -e
 J=${1:?usage: Allrun <J> [target-dir]}
 HERE=$(cd "$(dirname "$0")" && pwd)
 TARGET=${2:-$HERE/../../runs/of_dtmb4381_J$J}
 STL=${STL:-$HERE/../../../NavalArchitectToolbox.jl/runs/dtmb4381_Z5.stl}
 
-source /usr/lib/openfoam/openfoam2512/etc/bashrc
-
 D=0.3048; U=2.0
-OMEGA=$(python3 -c "import math; print(2*math.pi*$U/($J*$D))")
+# right-handed prop, inflow +z: omega about +z is NEGATIVE (clockwise
+# viewed from astern). +omega was verified to produce reversed thrust.
+OMEGA=$(python3 -c "import math; print(-2*math.pi*$U/($J*$D))")
 echo "J=$J  =>  omega=$OMEGA rad/s  (n=$(python3 -c "print($U/($J*$D))") rps)"
 
 rm -rf "$TARGET"; mkdir -p "$TARGET"
-cp -r "$HERE"/{system,constant,0} "$TARGET/"
+cp -r "$HERE"/{system,constant,0.orig} "$TARGET/"
 mkdir -p "$TARGET/constant/triSurface"
 cp "$STL" "$TARGET/constant/triSurface/"
 sed -i "s/OMEGA_PLACEHOLDER/$OMEGA/" "$TARGET/constant/MRFProperties"
 
 cd "$TARGET"
+. "$WM_PROJECT_DIR/bin/tools/RunFunctions"
 blockMesh > log.blockMesh 2>&1
-decomposePar > log.decomposePar 2>&1
+decomposePar > log.decomposePar 2>&1     # mesh-only decomposition
 mpirun -np 64 snappyHexMesh -overwrite -parallel > log.snappyHexMesh 2>&1
 mpirun -np 64 checkMesh -parallel > log.checkMesh 2>&1 || true
+restore0Dir -processor                    # fields AFTER snappy adds the patch
 mpirun -np 64 simpleFoam -parallel > log.simpleFoam 2>&1
 reconstructPar -latestTime > log.reconstructPar 2>&1 || true
 echo "done: $TARGET"

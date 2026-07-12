@@ -37,9 +37,13 @@ const J     = parse(Float64, get(ENV, "WL_J", "0.889"))  # advance ratio
 const ReD   = parse(Float64, get(ENV, "WL_RE", "5000"))  # U∞·D/ν
 const REVS  = parse(Float64, get(ENV, "WL_REVS", "3"))
 const STATIC= get(ENV, "WL_STATIC", "0") == "1"
-const SPIN  = parse(Float64, get(ENV, "WL_SPIN", "1"))   # handedness: ±1
-# (static sanity check: SPIN=-1 pushes fluid upstream (T<0) for this
-#  geometry — the DTMB table + blade_sdf convention thrusts with SPIN=+1)
+const SPIN  = parse(Float64, get(ENV, "WL_SPIN", "-1"))  # handedness: ±1
+# Correct spin is NEGATIVE about the downstream shaft axis: the section
+# apparent wind U ẑ − Ωr θ̂ only aligns LE→TE (chord = +cosβ θ̂ + sinβ ẑ)
+# for Ω<0, and both codes confirm it empirically — at Ω>0 WaterLily and
+# OpenFOAM MRF agree on REVERSED thrust (KT ≈ −0.75 vs −0.79 at J=0.889).
+# (An early frozen-rotor sign read said otherwise — that was the
+#  impulsive-start transient, not thrust.)
 const PROP  = get(ENV, "WL_PROP", "4381")
 const tab   = PROP == "4382" ? dtmb4382 : dtmb4381
 
@@ -63,8 +67,12 @@ prop_sdf(ξ, t) = min(sdfb(ξ), hub(ξ))
 
 # grid → blade frame: translate to shaft centre, un-rotate by the shaft
 # angle about grid-x, then permute so blade-frame z = grid x (shaft axis).
+# The spin-up RAMP is essential: an impulsive full-Ω start on sub-cell-thick
+# blades fires a spurious velocity spike that crushes the CFL Δt ~100×.
+const T_RAMP = parse(Float64, get(ENV, "WL_TRAMP", "0.25")) / n   # revs → t.u.
+@inline shaft_angle(t) = t < T_RAMP ? Ω * t^2 / (2T_RAMP) : Ω * (t - T_RAMP/2)
 @inline function prop_map(x, t)
-    φ = Ω * t
+    φ = shaft_angle(t)
     s, c = sincos(φ)
     yr = x[2] - cy; zr = x[3] - cz
     SA[c*yr + s*zr, -s*yr + c*zr, x[1] - cx]
@@ -119,12 +127,19 @@ else
     t_end = REVS * t_rev
     csv = joinpath(OUT, "kt_kq_$(PROP)_D$(Int(Dc))_J$(J).csv")
     open(csv, "w") do io
-        println(io, "t,rev,KT,10KQ")
+        println(io, "t,rev,KT,10KQ"); flush(io)
+        step = 0
         while sim_time(sim) < t_end
             sim_step!(sim; remeasure = true)
             t = sim_time(sim)
             T, Q = thrust_torque(sim)
             @printf(io, "%.4f,%.3f,%.6f,%.6f\n", t, t/t_rev, kt(T), 10kq(Q))
+            step += 1
+            if step % 25 == 0
+                flush(io)
+                @printf("rev %.3f/%.1f  Δt=%.4f  KT=%.4f 10KQ=%.4f\n",
+                        t/t_rev, REVS, sim.flow.Δt[end], kt(T), 10kq(Q))
+            end
         end
     end
     # last-revolution windowed stats

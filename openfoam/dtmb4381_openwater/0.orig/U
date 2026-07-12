@@ -12,6 +12,8 @@ internalField   uniform (0 0 2);   // U∞ = 2 m/s along +z (shaft axis)
 
 boundaryField
 {
+    #includeEtc "caseDicts/setConstraintTypes"   // procBoundary* etc.
+
     inlet
     {
         type            fixedValue;
@@ -29,7 +31,8 @@ boundaryField
     }
     propeller
     {
-        type            movingWallVelocity;   // no-slip in the rotating zone
-        value           uniform (0 0 0);
+        // plain no-slip: MRF adds the rotating-frame wall velocity for
+        // patches inside the cellZone (not listed in nonRotatingPatches)
+        type            noSlip;
     }
 }
