@@ -123,15 +123,17 @@ if STATIC
     T, Q = thrust_torque(sim)
     @printf("frozen rotor after 20 steps: T=%+.3f Q=%+.3f (signs only)\n", T, Q)
 else
+    # NB flow-time units throughout (n, Ω are per flow-time-unit);
+    # sim_time() is CONVECTIVE time t·U/L — 64× off for the rev count.
     t_rev = 1 / n
     t_end = REVS * t_rev
     csv = joinpath(OUT, "kt_kq_$(PROP)_D$(Int(Dc))_J$(J).csv")
     open(csv, "w") do io
         println(io, "t,rev,KT,10KQ"); flush(io)
         step = 0
-        while sim_time(sim) < t_end
+        while WaterLily.time(sim.flow) < t_end
             sim_step!(sim; remeasure = true)
-            t = sim_time(sim)
+            t = WaterLily.time(sim.flow)
             T, Q = thrust_torque(sim)
             @printf(io, "%.4f,%.3f,%.6f,%.6f\n", t, t/t_rev, kt(T), 10kq(Q))
             step += 1

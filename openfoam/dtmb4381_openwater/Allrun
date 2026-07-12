@@ -26,6 +26,24 @@ mkdir -p "$TARGET/constant/triSurface"
 cp "$STL" "$TARGET/constant/triSurface/"
 sed -i "s/OMEGA_PLACEHOLDER/$OMEGA/" "$TARGET/constant/MRFProperties"
 
+# TURB=sst: k-omega SST at the experimental Reynolds (Boswell: Re_D=6.22e5)
+# instead of the default matched-Re laminar (Re_D=5e3, WaterLily twin).
+if [ "${TURB:-laminar}" = sst ]; then
+    NU=$(python3 -c "print($U*$D/6.22e5)")
+    sed -i "s/^nu .*/nu              $NU;/" "$TARGET/constant/transportProperties"
+    cat > "$TARGET/constant/turbulenceProperties" <<EOF
+FoamFile { version 2.0; format ascii; class dictionary; object turbulenceProperties; }
+simulationType  RAS;
+RAS
+{
+    RASModel        kOmegaSST;
+    turbulence      on;
+    printCoeffs     on;
+}
+EOF
+    echo "TURB=sst: nu=$NU (Re_D=6.22e5), kOmegaSST + wall functions"
+fi
+
 cd "$TARGET"
 . "$WM_PROJECT_DIR/bin/tools/RunFunctions"
 blockMesh > log.blockMesh 2>&1

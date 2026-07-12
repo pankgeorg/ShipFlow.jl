@@ -23,6 +23,14 @@ solvers
         tolerance       1e-8;
         relTol          0.1;
     }
+
+    "(k|omega)"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-8;
+        relTol          0.1;
+    }
 }
 
 SIMPLE
