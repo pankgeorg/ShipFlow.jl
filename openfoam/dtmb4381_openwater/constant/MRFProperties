@@ -1,0 +1,18 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      MRFProperties;
+}
+
+MRF1
+{
+    cellZone    rotor;
+    active      yes;
+    nonRotatingPatches (inlet outlet sides);
+
+    origin      (0 0 0);
+    axis        (0 0 1);
+    omega       OMEGA_PLACEHOLDER;   // rad/s, set by run script: 2π·U/(J·D)
+}

@@ -1,0 +1,123 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| snappy for the NAT-generated DTMB 4381 STL (blades + hub, one surface).     |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      snappyHexMeshDict;
+}
+
+castellatedMesh true;
+snap            true;
+addLayers       false;   // no prism layers: matched-Re laminar comparison first
+
+geometry
+{
+    propeller
+    {
+        type triSurfaceMesh;
+        file "dtmb4381_Z5.stl";
+    }
+    rotorZone
+    {
+        type searchableCylinder;
+        point1 (0 0 -0.061);
+        point2 (0 0  0.061);
+        radius 0.191;
+    }
+    wakeBox
+    {
+        type searchableBox;
+        min (-0.20 -0.20 -0.12);
+        max ( 0.20  0.20  0.55);
+    }
+}
+
+castellatedMeshControls
+{
+    maxLocalCells       6000000;
+    maxGlobalCells      40000000;
+    minRefinementCells  10;
+    maxLoadUnbalance    0.10;
+    nCellsBetweenLevels 3;
+
+    features ();
+
+    refinementSurfaces
+    {
+        propeller
+        {
+            level (4 5);        // 1.56 mm -> 0.78 mm at the skin
+        }
+        rotorZone
+        {
+            level (0 0);
+            cellZone rotor;
+            faceZone rotor;
+            cellZoneInside inside;
+        }
+    }
+
+    resolveFeatureAngle 30;
+
+    refinementRegions
+    {
+        rotorZone
+        {
+            mode inside;
+            levels ((1e15 3));  // 3.1 mm through the disk
+        }
+        wakeBox
+        {
+            mode inside;
+            levels ((1e15 2));  // 6.3 mm in the near wake
+        }
+    }
+
+    locationInMesh (0.0123 0.0234 -0.4012);   // in the fluid, upstream
+    allowFreeStandingZoneFaces true;
+}
+
+snapControls
+{
+    nSmoothPatch    3;
+    tolerance       2.0;
+    nSolveIter      50;
+    nRelaxIter      5;
+    nFeatureSnapIter 10;
+    implicitFeatureSnap true;
+    explicitFeatureSnap false;
+}
+
+addLayersControls
+{
+    relativeSizes true;
+    layers {}
+    expansionRatio 1.2;
+    finalLayerThickness 0.5;
+    minThickness 0.1;
+    nGrow 0;
+    featureAngle 60;
+    nRelaxIter 3;
+    nSmoothSurfaceNormals 1;
+    nSmoothNormals 3;
+    nSmoothThickness 10;
+    maxFaceThicknessRatio 0.5;
+    maxThicknessToMedialRatio 0.3;
+    minMedialAxisAngle 90;
+    nBufferCellsNoExtrude 0;
+    nLayerIter 50;
+}
+
+meshQualityControls
+{
+    #includeEtc "caseDicts/meshQualityDict"
+    minTetQuality 1e-30;
+    nSmoothScale 4;
+    errorReduction 0.75;
+}
+
+writeFlags ();
+mergeTolerance 1e-6;

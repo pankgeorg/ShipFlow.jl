@@ -1,0 +1,56 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| Background box for DTMB 4381 open-water MRF case.                            |
+| Shaft along +z (STL convention), inflow +z, D = 0.3048 m, prop at origin.   |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+scale   1;
+
+// 2.95D square cross-section, 1.8D upstream / 3.4D downstream
+vertices
+(
+    (-0.45 -0.45 -0.55)
+    ( 0.45 -0.45 -0.55)
+    ( 0.45  0.45 -0.55)
+    (-0.45  0.45 -0.55)
+    (-0.45 -0.45  1.05)
+    ( 0.45 -0.45  1.05)
+    ( 0.45  0.45  1.05)
+    (-0.45  0.45  1.05)
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (36 36 64) simpleGrading (1 1 1)   // h = 25 mm
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces ((0 3 2 1));
+    }
+    outlet
+    {
+        type patch;
+        faces ((4 5 6 7));
+    }
+    sides
+    {
+        type patch;
+        faces
+        (
+            (0 1 5 4)
+            (2 3 7 6)
+            (1 2 6 5)
+            (3 0 4 7)
+        );
+    }
+);

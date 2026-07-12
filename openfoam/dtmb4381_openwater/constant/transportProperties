@@ -1,0 +1,12 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      transportProperties;
+}
+
+transportModel  Newtonian;
+
+// matched to the WaterLily run: Re_D = U·D/ν = 2·0.3048/ν = 5000
+nu              1.2192e-04;
