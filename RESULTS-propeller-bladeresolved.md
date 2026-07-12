@@ -57,13 +57,31 @@ mutually consistent.
   the high-Re values because Re_chord ≈ 3×10³ decambers the sections
   (OpenFOAM's full laminar J-sweep shifts the zero-thrust J from ~1.25
   down to ~1.05 — see table below).
-- **WaterLily torque at D = 64 is NOT credible** (10KQ 5× low, η > 1):
-  the blade is sub-cell-thick outboard of ~0.4R (t(0.7R) ≈ 0.6 cells;
-  immersed-volume ratio 0.14 in the static sanity check), so BDIM
-  captures almost no blade-surface shear and little pressure-side torque.
-  KT survives (thrust is dominated by the pressure jump BDIM does
-  represent); KQ does not. **The D = 96 / 128 ladder is the designed
-  next step** (D = 96 running at time of writing).
+- **WaterLily torque is NOT credible at any affordable D** — the ladder
+  settles it:
+
+  | | KT | 10KQ |
+  |---|---|---|
+  | WL D = 64 | 0.112 ± 0.030 | +0.102 ± 0.084 |
+  | WL D = 96 | 0.132 ± 0.019 | **−0.044 ± 0.039** (sign flips into noise) |
+  | OF laminar (same Re) | 0.078 | 0.489 |
+  | VLM (inviscid) | 0.174 | 0.388 |
+
+  The blade is sub-cell-thick outboard of ~0.4R (t(0.7R) ≈ 0.6–0.9
+  cells; immersed-volume ratio 0.14 at D = 64), so BDIM captures no
+  blade-surface shear and the pressure-torque contribution cancels into
+  noise. **KT meanwhile converges AWAY from the viscous low-Re answer
+  and TOWARD the inviscid VLM** — coherent: BDIM with an unresolved
+  boundary layer behaves quasi-inviscid. A credible KQ needs several
+  cells across the section (D ≳ 256, ≳130 M uniform cells — not a CPU
+  option). D = 128 (last affordable rung) running to confirm the
+  KT→inviscid trend.
+
+  **Division-of-labor conclusion:** blade-resolved propellers belong to
+  OpenFOAM (or an AMR/multi-resolution solver); WaterLily's propeller
+  lane in this stack is the validated actuator/VLM-coupled disk
+  (±0.3 % round-trip, RESULTS-propeller-layer2.md) behind the hull —
+  with OpenFOAM supplying/verifying the radial loading.
 
 ## OpenFOAM laminar J-sweep (Re_D = 5×10³, 1.6 M cells)
 
