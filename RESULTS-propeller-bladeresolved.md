@@ -73,9 +73,18 @@ mutually consistent.
   noise. **KT meanwhile converges AWAY from the viscous low-Re answer
   and TOWARD the inviscid VLM** — coherent: BDIM with an unresolved
   boundary layer behaves quasi-inviscid. A credible KQ needs several
-  cells across the section (D ≳ 256, ≳130 M uniform cells — not a CPU
-  option). D = 128 (last affordable rung) running to confirm the
-  KT→inviscid trend.
+  cells across the section (D ≳ 256 — not a CPU option here, but a
+  **single-A100 GPU job**: shrunk 2.5D×1.5D×1.5D domain at D = 256 is
+  94 M cells ≈ 10 GB of fields; WaterLily's KA backend makes it
+  `mem=CuArray` away. Uniform-grid resolution is a *hardware* limit, not
+  a solver one — what WaterLily can't do is *concentrate* resolution).
+
+  D = 128 first attempt **diverged at rev ≈ 0.6** (thin-body BDIM at the
+  nastiest ~1.2-cell thickness + loose Poisson at 33 M cells); its
+  pre-divergence read KT ≈ 0.19 at rev 0.42 is on the →inviscid trend
+  but is NOT a settled average. Retry running with ϵ = 2 kernel and
+  per-call Poisson `tol=1e-5` — via the stack's own solver-control
+  kwargs chain (`sim_step! → mom_step! → mom_project! → solver!`).
 
   **Division-of-labor conclusion:** blade-resolved propellers belong to
   OpenFOAM (or an AMR/multi-resolution solver); WaterLily's propeller

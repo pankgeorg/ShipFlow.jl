@@ -46,6 +46,10 @@ const SPIN  = parse(Float64, get(ENV, "WL_SPIN", "-1"))  # handedness: ±1
 #  impulsive-start transient, not thrust.)
 const PROP  = get(ENV, "WL_PROP", "4381")
 const tab   = PROP == "4382" ? dtmb4382 : dtmb4381
+# thin-blade stabilizers (D=128 diverged at rev~0.6 with defaults):
+const EPS   = parse(Float64, get(ENV, "WL_EPS", "1"))    # BDIM kernel width
+const PTOL  = parse(Float64, get(ENV, "WL_PTOL", "1e-4"))# Poisson tol (per-call)
+const PITMX = parse(Int, get(ENV, "WL_PITMX", "1000"))   # Poisson itmx
 
 const U∞ = 1.0
 const Dh = 0.2Dc                    # hub diameter (r/R=0.2 table root)
@@ -85,7 +89,7 @@ body = AutoBody(prop_sdf, prop_map)
         NX, NY, NZ, NX*NY*NZ/1e6, 1/n)
 
 sim = Simulation((NX, NY, NZ), (U∞, 0., 0.), Dc;
-                 ν = U∞*Dc/ReD, body, exitBC = true)
+                 ν = U∞*Dc/ReD, body, exitBC = true, ϵ = EPS)
 
 const x₀ = SA[cx, cy, cz]
 thrust_torque(s) = begin
@@ -132,7 +136,9 @@ else
         println(io, "t,rev,KT,10KQ"); flush(io)
         step = 0
         while WaterLily.time(sim.flow) < t_end
-            sim_step!(sim; remeasure = true)
+            # tol/itmx ride the merged Poisson-control kwargs chain:
+            # sim_step! -> mom_step! -> mom_project! -> solver!
+            sim_step!(sim; remeasure = true, tol = PTOL, itmx = PITMX)
             t = WaterLily.time(sim.flow)
             T, Q = thrust_torque(sim)
             @printf(io, "%.4f,%.3f,%.6f,%.6f\n", t, t/t_rev, kt(T), 10kq(Q))
