@@ -79,12 +79,23 @@ mutually consistent.
   `mem=CuArray` away. Uniform-grid resolution is a *hardware* limit, not
   a solver one — what WaterLily can't do is *concentrate* resolution).
 
-  D = 128 first attempt **diverged at rev ≈ 0.6** (thin-body BDIM at the
-  nastiest ~1.2-cell thickness + loose Poisson at 33 M cells); its
-  pre-divergence read KT ≈ 0.19 at rev 0.42 is on the →inviscid trend
-  but is NOT a settled average. Retry running with ϵ = 2 kernel and
-  per-call Poisson `tol=1e-5` — via the stack's own solver-control
-  kwargs chain (`sim_step! → mom_step! → mom_project! → solver!`).
+  **D = 128 hits a hard stability wall — the CPU ladder ends here.**
+  Two independent failure modes, same onset (rev ≈ 0.5, healthy
+  KT ≈ 0.19 before it):
+  - defaults (ϵ = 1): Δt collapses, KT → −30 (divergence);
+  - stabilized (ϵ = 2, Poisson `tol=1e-5` via the solver-control kwargs
+    chain): no divergence, but a **saturated spurious state** — KT climbs
+    monotonically to ≈ 2.0 (10× physical) with η staying plausible
+    (KT and KQ grow together). Signature of a pumping feedback: the
+    ≥kernel-porous blade acts as a fan, through-flow accelerates,
+    effective J at the blade drops, loading rises, repeat.
+  - D = 64 is flat-to-decreasing across revs and D = 96 only mildly
+    drifting — the runaway is specific to the ~1-cell-thickness regime.
+  - λ = vanLeer (upstream's new limiter-in-Flow) probe running: more
+    dissipative convection may break the feedback loop. If it does not,
+    thin-blade BDIM needs upstream-grade work (kernel-consistent
+    thin-shell treatment) before GPU-D=256 is worth buying — added
+    resolution would likely sharpen, not cure, the feedback.
 
   **Division-of-labor conclusion:** blade-resolved propellers belong to
   OpenFOAM (or an AMR/multi-resolution solver); WaterLily's propeller

@@ -50,6 +50,7 @@ const tab   = PROP == "4382" ? dtmb4382 : dtmb4381
 const EPS   = parse(Float64, get(ENV, "WL_EPS", "1"))    # BDIM kernel width
 const PTOL  = parse(Float64, get(ENV, "WL_PTOL", "1e-4"))# Poisson tol (per-call)
 const PITMX = parse(Int, get(ENV, "WL_PITMX", "1000"))   # Poisson itmx
+const Λ     = get(ENV, "WL_LAMBDA", "quick") == "vanLeer" ? WaterLily.vanLeer : WaterLily.quick
 
 const U∞ = 1.0
 const Dh = 0.2Dc                    # hub diameter (r/R=0.2 table root)
@@ -89,7 +90,7 @@ body = AutoBody(prop_sdf, prop_map)
         NX, NY, NZ, NX*NY*NZ/1e6, 1/n)
 
 sim = Simulation((NX, NY, NZ), (U∞, 0., 0.), Dc;
-                 ν = U∞*Dc/ReD, body, exitBC = true, ϵ = EPS)
+                 ν = U∞*Dc/ReD, body, exitBC = true, ϵ = EPS, λ = Λ)
 
 const x₀ = SA[cx, cy, cz]
 thrust_torque(s) = begin
