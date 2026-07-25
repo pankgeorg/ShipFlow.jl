@@ -91,11 +91,22 @@ mutually consistent.
     effective J at the blade drops, loading rises, repeat.
   - D = 64 is flat-to-decreasing across revs and D = 96 only mildly
     drifting — the runaway is specific to the ~1-cell-thickness regime.
-  - λ = vanLeer (upstream's new limiter-in-Flow) probe running: more
-    dissipative convection may break the feedback loop. If it does not,
-    thin-blade BDIM needs upstream-grade work (kernel-consistent
-    thin-shell treatment) before GPU-D=256 is worth buying — added
-    resolution would likely sharpen, not cure, the feedback.
+  - **λ = vanLeer probe: fails identically.** Onset at the same
+    rev ≈ 0.5, later full divergence (KT → O(10³), Δt → 1e-4). The
+    limiter changes the failure trajectory, not the cause.
+  - **The instability is robust to every affordable knob** — (ϵ 1→2,
+    Poisson tol 1e-4→1e-5, λ quick→vanLeer) all fail with the same
+    onset. Conversely, the *pre-onset* value is strikingly repeatable:
+    KT ≈ 0.19 / 0.19 / 0.20 across the three D = 128 attempts (rev
+    0.3–0.45 window) — a consistent early-window estimate right on the
+    →inviscid trend (VLM 0.174).
+  - **Final call:** blade-resolved WaterLily is closed pending a
+    kernel-consistent thin-shell BDIM treatment (upstream-grade work —
+    the ~1-cell-thickness pumping feedback is a publishable finding in
+    itself). GPU D = 256 is on hold: added resolution sharpens, not
+    cures, the feedback. The stack's propeller lane remains the
+    validated actuator/VLM disk; blade-resolved verification remains
+    OpenFOAM's.
 
   **Division-of-labor conclusion:** blade-resolved propellers belong to
   OpenFOAM (or an AMR/multi-resolution solver); WaterLily's propeller

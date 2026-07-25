@@ -142,6 +142,13 @@ else
             sim_step!(sim; remeasure = true, tol = PTOL, itmx = PITMX)
             t = WaterLily.time(sim.flow)
             T, Q = thrust_torque(sim)
+            # divergence guard: the D=128 thin-blade feedback grinds Δt to
+            # ~1e-4 and KT to O(10³) — abort instead of milling for days.
+            if sim.flow.Δt[end] < 1e-2 || abs(kt(T)) > 5
+                @printf("DIVERGED at rev %.3f (Δt=%.5f, KT=%.2f) — aborting\n",
+                        t/t_rev, sim.flow.Δt[end], kt(T))
+                break
+            end
             @printf(io, "%.4f,%.3f,%.6f,%.6f\n", t, t/t_rev, kt(T), 10kq(Q))
             step += 1
             if step % 25 == 0
